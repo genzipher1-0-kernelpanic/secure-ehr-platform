@@ -3,6 +3,7 @@ package com.team.care.config;
 import com.team.care.dto.ErrorResponse;
 import com.team.care.service.exception.BadRequestException;
 import com.team.care.service.exception.ConflictException;
+import com.team.care.service.exception.ForbiddenException;
 import com.team.care.service.exception.NotFoundException;
 import com.team.care.service.exception.UnauthorizedException;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("UNAUTHORIZED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

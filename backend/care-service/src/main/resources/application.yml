@@ -19,3 +19,9 @@ spring:
 logging:
   level:
     org.springframework.web: INFO
+
+jwt:
+  issuer: "identity-service"
+  audience: "your-audience"
+  secret: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS"
+  clockSkewSeconds: 30
