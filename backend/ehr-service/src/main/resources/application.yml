@@ -24,7 +24,7 @@ spring:
 
 security:
   jwt:
-    issuer: ${REHR_JWT_ISSUE:identity-service}
+    issuer: ${EHR_JWT_ISSUER:identity-service}
     audience: ${EHR_JWT_AUDIENCE:your-audience}
     secret: ${EHR_JWT_SECRET:CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS}
     clockSkewSeconds: ${EHR_JWT_CLOCK_SKEW:30}
