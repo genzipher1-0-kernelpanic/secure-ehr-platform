@@ -39,6 +39,36 @@ export const API_ENDPOINTS = {
   },
 } as const;
 
+// ─── Care Service Endpoints (localhost:5005) ────────────────────────────────
+
+export const CARE_ENDPOINTS = {
+  // Internal (profile creation / access checks)
+  INTERNAL: {
+    CREATE_PROFILE: '/internal/profiles',
+    CHECK_ACCESS: '/internal/access',
+    GET_DOCTOR_BY_USER: (userId: string) => `/internal/doctors/${userId}`,
+  },
+  // Doctor endpoints
+  DOCTORS: {
+    ME: '/api/doctors/me',
+    GET: (doctorId: string) => `/api/care/doctors/${doctorId}`,
+  },
+  // Patient endpoints
+  PATIENTS: {
+    GET: (patientId: string) => `/api/care/patients/${patientId}`,
+  },
+  // Assignments
+  ASSIGNMENTS: {
+    CREATE: '/api/care/assignments',
+    END: (assignmentId: string) => `/api/care/assignments/${assignmentId}/end`,
+  },
+  // Consents
+  CONSENTS: {
+    CREATE: '/api/care/consents',
+    REVOKE: (consentId: string) => `/api/care/consents/${consentId}/revoke`,
+  },
+} as const;
+
 export const TOAST_DURATION = 5000;
 
 export const PASSWORD_REQUIREMENTS = {

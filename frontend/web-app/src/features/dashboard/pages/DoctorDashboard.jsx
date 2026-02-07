@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
+import { getMyDoctorProfile } from '@/features/care/api/careApi'
 
 const navItems = [
   {
@@ -112,6 +113,8 @@ const patientColumns = [
 
 export default function DoctorDashboard() {
   const [patients, setPatients] = useState(mockPatients)
+  const [doctorProfile, setDoctorProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [isViewPatientModalOpen, setIsViewPatientModalOpen] = useState(false)
   const [isReferPatientModalOpen, setIsReferPatientModalOpen] = useState(false)
   const [isAddNotesModalOpen, setIsAddNotesModalOpen] = useState(false)
@@ -125,6 +128,21 @@ export default function DoctorDashboard() {
     notes: '',
   })
   const [newNotes, setNewNotes] = useState('')
+
+  // Fetch doctor's own profile from care service on mount
+  useEffect(() => {
+    async function loadDoctorProfile() {
+      try {
+        const profile = await getMyDoctorProfile()
+        setDoctorProfile(profile)
+      } catch (error) {
+        console.error('Failed to load doctor profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    loadDoctorProfile()
+  }, [])
 
   const handleViewPatient = (patient) => {
     setSelectedPatient(patient)
@@ -199,7 +217,13 @@ export default function DoctorDashboard() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Doctor Dashboard</h1>
-          <p className="text-slate-500 mt-1">Welcome back! Here are your patients and appointments.</p>
+          <p className="text-slate-500 mt-1">
+            {profileLoading
+              ? 'Loading profile...'
+              : doctorProfile
+                ? `Welcome back, ${doctorProfile.fullName}! (${doctorProfile.specialization})`
+                : 'Welcome back! Here are your patients and appointments.'}
+          </p>
         </div>
 
         {/* Stats */}

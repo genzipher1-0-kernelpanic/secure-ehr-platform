@@ -1,5 +1,6 @@
 export const config = {
   apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+  careApiUrl: import.meta.env.VITE_CARE_API_URL || 'http://localhost:5005',
   appName: 'GenZipher Health',
   version: '1.0.0',
   isDevelopment: import.meta.env.DEV,
