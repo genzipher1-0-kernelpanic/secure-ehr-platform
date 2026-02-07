@@ -5,6 +5,8 @@ import com.team.ehr.dto.EhrUpdateRequest;
 import com.team.ehr.dto.EhrUpdateResponse;
 import com.team.ehr.dto.EhrVersionDto;
 import com.team.ehr.dto.EhrExportResponse;
+import com.team.ehr.dto.EhrCreateRequest;
+import com.team.ehr.dto.EhrCreateResponse;
 import com.team.ehr.entity.EhrCategory;
 import com.team.ehr.service.EhrRecordService;
 import com.team.ehr.service.ExportService;
@@ -52,6 +54,15 @@ public class EhrController {
             @Valid @RequestBody EhrUpdateRequest request
     ) {
         return ehrRecordService.updateRecord(patientId, request);
+    }
+
+    @PostMapping("/{patientId}")
+    @PreAuthorize("isAuthenticated()")
+    public EhrCreateResponse createPatientRecord(
+            @PathVariable Long patientId,
+            @Valid @RequestBody EhrCreateRequest request
+    ) {
+        return ehrRecordService.createRecord(patientId, request);
     }
 
     @GetMapping("/{patientId}/versions")

@@ -13,7 +13,7 @@ public class SecurityBeans {
     }
 
     @Bean
-    public InternalAuthFilter internalAuthFilter(@org.springframework.beans.factory.annotation.Value("${INTERNAL_SERVICE_TOKEN:}") String token,
+    public InternalAuthFilter internalAuthFilter(@org.springframework.beans.factory.annotation.Value("${internal.service.token:}") String token,
                                                   ObjectMapper objectMapper) {
         return new InternalAuthFilter(token, objectMapper);
     }
