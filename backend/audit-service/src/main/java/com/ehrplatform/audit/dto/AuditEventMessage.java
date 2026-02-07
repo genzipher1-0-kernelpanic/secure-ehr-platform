@@ -1,9 +1,8 @@
 package com.ehrplatform.audit.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,10 +10,20 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Shared DTO contract for audit events from all producers (gateway/identity/ehr).
- * This is the Kafka message format.
+ * Flexible DTO for audit events from producers (care-service, gateway, identity, ehr).
+ * Accepts both minimal events (from care-service) and full events.
+ * 
+ * Minimal format from care-service:
+ * {
+ *   "eventType": "ASSIGNMENT_CREATED",
+ *   "patientId": 7,
+ *   "doctorUserId": 34,
+ *   "role": "DOCTOR",
+ *   "occurredAt": "2026-02-07T23:20:00Z"
+ * }
  */
 @Data
 @Builder
@@ -23,65 +32,80 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AuditEventMessage {
 
-    // ========== Required Fields ==========
+    // ========== Core Fields (from care-service) ==========
+
+    /**
+     * Event type classification (e.g., "ASSIGNMENT_CREATED", "LOGIN_SUCCESS")
+     */
+    private String eventType;
 
     /**
      * When the event occurred (UTC)
      */
-    @NotNull(message = "occurredAt is required")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
     private Instant occurredAt;
 
     /**
-     * Source service name (e.g., "gateway", "identity", "ehr", "care")
+     * Patient ID (for healthcare domain events)
      */
-    @NotBlank(message = "sourceService is required")
+    private Long patientId;
+
+    /**
+     * Doctor user ID (from care-service events)
+     */
+    @JsonAlias({"doctorUserId", "actorUserId"})
+    private Long doctorUserId;
+
+    /**
+     * Role associated with the event
+     */
+    @JsonAlias({"role", "actorRole"})
+    private String role;
+
+    // ========== Optional Extended Fields ==========
+
+    /**
+     * Source service name (e.g., "gateway", "identity", "ehr", "care")
+     * Will default to "unknown" if not provided
+     */
     private String sourceService;
 
     /**
-     * Event type classification (e.g., "LOGIN_SUCCESS", "LOGIN_FAILURE", "RECORD_VIEWED")
+     * Source instance/hostname
      */
-    @NotBlank(message = "eventType is required")
-    private String eventType;
+    private String sourceInstance;
 
     /**
      * Outcome of the event: SUCCESS, FAILURE, or DENIED
+     * Will default to "SUCCESS" if not provided
      */
-    @NotBlank(message = "outcome is required")
     private String outcome;
 
     /**
      * Severity level: INFO, WARN, HIGH, or CRITICAL
+     * Will default to "INFO" if not provided
      */
-    @NotBlank(message = "severity is required")
     @Builder.Default
     private String severity = "INFO";
 
     /**
      * Unique request ID for idempotency (UUID recommended)
+     * Will be auto-generated if not provided
      */
-    @NotBlank(message = "requestId is required")
     private String requestId;
 
-    // ========== Optional Fields ==========
-
     /**
-     * Optional: source instance/hostname
-     */
-    private String sourceInstance;
-
-    /**
-     * Actor's user ID (null for pre-auth events like login failures)
+     * Actor's user ID (mapped from doctorUserId if not set)
      */
     private Long actorUserId;
 
     /**
-     * Actor's role (PATIENT, DOCTOR, ADMIN, SYS_ADMIN, SUPER_ADMIN)
+     * Actor's role (mapped from role if not set)
      */
     private String actorRole;
 
     /**
-     * Actor's email (useful for login failures where no userId yet)
+     * Actor's email
      */
     private String actorEmail;
 
@@ -106,11 +130,6 @@ public class AuditEventMessage {
     private String sessionId;
 
     /**
-     * Patient ID (for healthcare domain events)
-     */
-    private Long patientId;
-
-    /**
      * Medical record ID
      */
     private Long recordId;
@@ -121,7 +140,7 @@ public class AuditEventMessage {
     private Long targetUserId;
 
     /**
-     * Trace ID for distributed tracing (Zipkin/Jaeger)
+     * Trace ID for distributed tracing
      */
     private String traceId;
 
@@ -131,7 +150,79 @@ public class AuditEventMessage {
     private String spanId;
 
     /**
-     * Additional metadata (sanitized, never PHI text)
+     * Additional metadata
      */
     private Map<String, Object> details;
+
+    // ========== Helper Methods for Normalization ==========
+
+    /**
+     * Get effective actor user ID (prefers actorUserId, falls back to doctorUserId)
+     */
+    public Long getEffectiveActorUserId() {
+        if (actorUserId != null) {
+            return actorUserId;
+        }
+        return doctorUserId;
+    }
+
+    /**
+     * Get effective actor role (prefers actorRole, falls back to role)
+     */
+    public String getEffectiveActorRole() {
+        if (actorRole != null && !actorRole.isEmpty()) {
+            return actorRole;
+        }
+        return role;
+    }
+
+    /**
+     * Get effective request ID (auto-generates if null)
+     */
+    public String getEffectiveRequestId() {
+        if (requestId != null && !requestId.isEmpty()) {
+            return requestId;
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * Get effective source service (defaults to "care-service" if null)
+     */
+    public String getEffectiveSourceService() {
+        if (sourceService != null && !sourceService.isEmpty()) {
+            return sourceService;
+        }
+        return "care-service";
+    }
+
+    /**
+     * Get effective outcome (defaults to "SUCCESS" if null)
+     */
+    public String getEffectiveOutcome() {
+        if (outcome != null && !outcome.isEmpty()) {
+            return outcome;
+        }
+        return "SUCCESS";
+    }
+
+    /**
+     * Get effective severity (defaults to "INFO" if null)
+     */
+    public String getEffectiveSeverity() {
+        if (severity != null && !severity.isEmpty()) {
+            return severity;
+        }
+        return "INFO";
+    }
+
+    /**
+     * Get effective occurred at (defaults to now if null)
+     */
+    public Instant getEffectiveOccurredAt() {
+        if (occurredAt != null) {
+            return occurredAt;
+        }
+        return Instant.now();
+    }
 }

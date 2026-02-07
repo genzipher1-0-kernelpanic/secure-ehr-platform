@@ -68,15 +68,29 @@ public class AlertDetectionService {
             "ADMIN_CREATED", "ADMIN_DELETED", "PERMISSION_CHANGED"
     );
 
+    // Care-service events that should be logged for audit trail (informational alerts)
+    private static final Set<String> CARE_EVENTS = Set.of(
+            "ASSIGNMENT_CREATED", "ASSIGNMENT_REMOVED", "CONSENT_GRANTED",
+            "CONSENT_REVOKED", "PATIENT_ACCESSED", "RECORD_VIEWED"
+    );
+
     /**
-     * Check for immediate alerts on event ingest (e.g., policy changes)
+     * Check for immediate alerts on event ingest (e.g., policy changes, suspicious activity)
      */
     @Transactional
     public void checkImmediateAlerts(AuditEvent event) {
         if (!alertsEnabled) return;
 
+        // Check for policy change events (CRITICAL/HIGH severity)
         if (POLICY_CHANGE_EVENTS.contains(event.getEventType())) {
             createPolicyChangeAlert(event);
+            return;
+        }
+
+        // Log care-service events for tracking (no alert, just audit)
+        if (CARE_EVENTS.contains(event.getEventType())) {
+            log.info("Care event recorded: eventType={}, patientId={}, actorUserId={}",
+                    event.getEventType(), event.getPatientId(), event.getActorUserId());
         }
     }
 

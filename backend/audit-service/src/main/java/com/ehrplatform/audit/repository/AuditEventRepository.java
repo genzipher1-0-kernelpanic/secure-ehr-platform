@@ -85,10 +85,11 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long>, J
 
     /**
      * Count unique patients accessed by actor within time window
+     * Includes ASSIGNMENT_CREATED events from care-service
      */
     @Query("SELECT ae.actorUserId, COUNT(DISTINCT ae.patientId) " +
            "FROM AuditEvent ae " +
-           "WHERE ae.eventType IN ('RECORD_VIEWED', 'PATIENT_ACCESSED') " +
+           "WHERE ae.eventType IN ('RECORD_VIEWED', 'PATIENT_ACCESSED', 'ASSIGNMENT_CREATED') " +
            "AND ae.patientId IS NOT NULL " +
            "AND ae.actorUserId IS NOT NULL " +
            "AND ae.occurredAt >= :since " +
@@ -104,6 +105,16 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long>, J
            "AND ae.occurredAt >= :since " +
            "ORDER BY ae.occurredAt DESC")
     List<AuditEvent> findRecentPolicyChanges(@Param("since") Instant since);
+
+    /**
+     * Find recent assignment events for a doctor
+     */
+    @Query("SELECT ae FROM AuditEvent ae " +
+           "WHERE ae.eventType = 'ASSIGNMENT_CREATED' " +
+           "AND ae.actorUserId = :doctorId " +
+           "AND ae.occurredAt >= :since " +
+           "ORDER BY ae.occurredAt DESC")
+    List<AuditEvent> findRecentDoctorAssignments(@Param("doctorId") Long doctorId, @Param("since") Instant since);
 
     /**
      * Find by actor user ID with pagination

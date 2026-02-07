@@ -39,14 +39,20 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         
-        // Trust packages for deserialization
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.ehrplatform.audit.dto");
+        // Trust packages for deserialization - include care-service DTOs
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.ehrplatform.audit.dto,com.team.care.dto,*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, AuditEventMessage.class.getName());
+        // Ignore type info headers - we map everything to AuditEventMessage
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
+        // Create deserializer with lenient settings
+        JsonDeserializer<AuditEventMessage> deserializer = new JsonDeserializer<>(AuditEventMessage.class, false);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeMapperForKey(false);
+        
         return new DefaultKafkaConsumerFactory<>(props, 
                 new StringDeserializer(),
-                new JsonDeserializer<>(AuditEventMessage.class, false));
+                deserializer);
     }
 
     @Bean
