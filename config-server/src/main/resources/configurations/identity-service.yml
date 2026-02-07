@@ -4,7 +4,20 @@ spring:
     username: Admin
     password: Admin@$20260702
     driver-class-name: com.mysql.cj.jdbc.Driver
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: e20318@eng.pdn.ac.lk
+    password: emaucnmosipxqump
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -47,6 +60,12 @@ security:
     access-ttl-seconds: 900
     refresh-ttl-seconds: 604800
     max-idle-seconds: 1800
+
+app:
+  mail:
+    from: ${MAIL_FROM:${spring.mail.username}}
+  password-reset:
+    code-ttl-seconds: 300   # 5 minutes
 
 logging:
   level:
