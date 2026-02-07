@@ -1,6 +1,7 @@
 package com.team.care.dto;
 
 import com.team.care.entity.Sex;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
 
@@ -15,6 +16,10 @@ public class PatientProfileDto {
     private LocalDate dob;
     private Sex sex;
     private String phone;
+
+    @Email
+    @NotBlank
+    private String email;
     private String address;
     private String emergencyContact;
 
@@ -64,6 +69,14 @@ public class PatientProfileDto {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getAddress() {

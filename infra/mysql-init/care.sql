@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS patients (
     dob DATE NULL,
     sex ENUM('MALE','FEMALE') NULL,
     phone VARCHAR(30) NULL,
+    email VARCHAR(200) NULL,
     address VARCHAR(300) NULL,
     emergency_contact VARCHAR(200) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -21,6 +22,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     specialization VARCHAR(150) NULL,
     license_number VARCHAR(100) NULL,
     phone VARCHAR(30) NULL,
+    email VARCHAR(200) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

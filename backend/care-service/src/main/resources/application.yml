@@ -15,10 +15,21 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
     open-in-view: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 logging:
   level:
     org.springframework.web: INFO
+
+kafka:
+  topics:
+    patientAssign: ${KAFKA_TOPIC_PATIENT_ASSIGN:patient-assign}
+    userRegistered: ${KAFKA_TOPIC_USER_REGISTERED:user-registered}
+    auditEvents: ${KAFKA_TOPIC_AUDIT_EVENTS:audit-events}
 
 jwt:
   issuer: "identity-service"

@@ -43,6 +43,9 @@ public class Patient {
     @Column(name = "phone", length = 30)
     private String phone;
 
+    @Column(name = "email", length = 200)
+    private String email;
+
     @Column(name = "address", length = 300)
     private String address;
 
@@ -99,6 +102,14 @@ public class Patient {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getAddress() {
