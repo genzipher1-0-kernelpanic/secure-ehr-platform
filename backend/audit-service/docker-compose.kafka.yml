@@ -61,14 +61,38 @@ services:
       - -ec
     command:
       - |
-        echo "Creating topic audit-events..."
+        echo "Creating Kafka topics..."
+
+        # audit-events: single partition for hash chain ordering (30 day retention)
         kafka-topics --bootstrap-server ehr-kafka:29092 --create --if-not-exists \
           --topic audit-events --partitions 1 --replication-factor 1 \
           --config retention.ms=2592000000 --config cleanup.policy=delete
 
-        echo "Describe topic:"
-        kafka-topics --bootstrap-server ehr-kafka:29092 --describe --topic audit-events
+        # alerts: published by audit-service, consumed by notification-service (7 day retention)
+        kafka-topics --bootstrap-server ehr-kafka:29092 --create --if-not-exists \
+          --topic alerts --partitions 3 --replication-factor 1 \
+          --config retention.ms=604800000 --config cleanup.policy=delete
 
+        # patient-assign: published by care-service (7 day retention)
+        kafka-topics --bootstrap-server ehr-kafka:29092 --create --if-not-exists \
+          --topic patient-assign --partitions 1 --replication-factor 1 \
+          --config retention.ms=604800000 --config cleanup.policy=delete
+
+        # user-registered: published by care-service (7 day retention)
+        kafka-topics --bootstrap-server ehr-kafka:29092 --create --if-not-exists \
+          --topic user-registered --partitions 1 --replication-factor 1 \
+          --config retention.ms=604800000 --config cleanup.policy=delete
+
+        # audit-events.DLT: dead letter topic for failed messages (14 day retention)
+        kafka-topics --bootstrap-server ehr-kafka:29092 --create --if-not-exists \
+          --topic audit-events.DLT --partitions 1 --replication-factor 1 \
+          --config retention.ms=1209600000 --config cleanup.policy=delete
+
+        echo ""
+        echo "Topics created:"
+        kafka-topics --bootstrap-server ehr-kafka:29092 --list
+
+        echo ""
         echo "Done."
     networks:
       - ehr-network

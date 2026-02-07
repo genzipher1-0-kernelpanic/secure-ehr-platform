@@ -3,6 +3,7 @@ package com.ehrplatform.audit.service;
 import com.ehrplatform.audit.entity.Alert;
 import com.ehrplatform.audit.entity.AlertDedupKey;
 import com.ehrplatform.audit.entity.AuditEvent;
+import com.ehrplatform.audit.kafka.AlertPublisher;
 import com.ehrplatform.audit.repository.AlertDedupKeyRepository;
 import com.ehrplatform.audit.repository.AlertRepository;
 import com.ehrplatform.audit.repository.AuditEventRepository;
@@ -34,6 +35,7 @@ public class AlertDetectionService {
     private final AlertRepository alertRepository;
     private final AlertDedupKeyRepository alertDedupKeyRepository;
     private final AuditEventRepository auditEventRepository;
+    private final AlertPublisher alertPublisher;
 
     @Value("${audit.alerts.enabled:true}")
     private boolean alertsEnabled;
@@ -153,6 +155,7 @@ public class AlertDetectionService {
 
         Alert saved = alertRepository.save(alert);
         saveDedupKey(dedupKey, saved.getId(), 60); // 60 minute expiry
+        alertPublisher.publishAlert(saved);
         
         log.warn("ALERT: {} - {}", alert.getAlertType(), alert.getTitle());
     }
@@ -198,6 +201,7 @@ public class AlertDetectionService {
 
             Alert saved = alertRepository.save(alert);
             saveDedupKey(dedupKey, saved.getId(), 60);
+            alertPublisher.publishAlert(saved);
             
             log.warn("ALERT: {} - {} attempts from {}/{}", 
                     alert.getAlertType(), count, email, ip);
@@ -245,6 +249,7 @@ public class AlertDetectionService {
 
             Alert saved = alertRepository.save(alert);
             saveDedupKey(dedupKey, saved.getId(), 60);
+            alertPublisher.publishAlert(saved);
             
             log.warn("ALERT: {} - {} denials for user {}", 
                     alert.getAlertType(), count, userId);
@@ -288,6 +293,7 @@ public class AlertDetectionService {
 
             Alert saved = alertRepository.save(alert);
             saveDedupKey(dedupKey, saved.getId(), 60);
+            alertPublisher.publishAlert(saved);
             
             log.warn("ALERT: {} - {} exports by user {}", 
                     alert.getAlertType(), count, userId);
@@ -331,6 +337,7 @@ public class AlertDetectionService {
 
             Alert saved = alertRepository.save(alert);
             saveDedupKey(dedupKey, saved.getId(), 120); // 2 hour expiry for critical
+            alertPublisher.publishAlert(saved);
             
             log.warn("ALERT: {} - {} patients accessed by user {}", 
                     alert.getAlertType(), patientCount, userId);
@@ -363,6 +370,7 @@ public class AlertDetectionService {
 
         Alert saved = alertRepository.save(alert);
         saveDedupKey(dedupKey, saved.getId(), 1440); // 24 hour expiry for critical
+        alertPublisher.publishAlert(saved);
         
         log.error("CRITICAL ALERT: {} - {}", alert.getAlertType(), alert.getMessage());
     }
