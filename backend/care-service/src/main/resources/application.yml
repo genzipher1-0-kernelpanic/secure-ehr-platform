@@ -5,9 +5,9 @@ spring:
   application:
     name: care-service
   datasource:
-    url: ${CARE_DB_URL:jdbc:mysql://localhost:3306/care_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${CARE_DB_USERNAME:root}
-    password: ${CARE_DB_PASSWORD:mapa}
+    url: ${CARE_DB_URL:jdbc:mysql://localhost:3308/care_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${CARE_DB_USERNAME:care_user}
+    password: ${CARE_DB_PASSWORD:care_pass}
   jpa:
     hibernate:
       ddl-auto: none
