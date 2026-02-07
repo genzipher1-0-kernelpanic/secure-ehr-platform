@@ -1,6 +1,28 @@
 import { useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { httpClient } from '@/lib/http/client'
+import { API_ENDPOINTS, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from '@/lib/config/constants'
+
+// JWT decode helper
+function decodeJWT(token) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonPayload)
+  } catch (error) {
+    console.error('Failed to decode JWT:', error)
+    return null
+  }
+}
 
 function LoginPage() {
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,18 +102,37 @@ function LoginPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Connect to backend API
-      console.log('Login attempt:', formData)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Call the login API
+      const response = await httpClient.post(API_ENDPOINTS.AUTH.LOGIN, {
+        email: formData.email,
+        password: formData.password,
+      })
       
-      // Simulating first login detection - backend will return this flag
-      const isFirstTimeUser = false // This will come from backend
-      if (isFirstTimeUser) {
+      // Check if it's a first login (user needs to set up password)
+      if (response.isFirstLogin) {
         setIsFirstLogin(true)
+        setIsLoading(false)
+        return
       }
-      // Handle successful login - redirect to dashboard
+      
+      // Decode JWT to get user info
+      const decoded = decodeJWT(response.accessToken)
+      
+      // Extract user data from response or decode from token
+      const userData = response.user || {
+        id: decoded.sub || decoded.userId,
+        email: decoded.email || formData.email,
+        fullName: decoded.fullName || decoded.name,
+        role: decoded.role,
+        mfaEnabled: decoded.mfaEnabled || false,
+      }
+      
+      // Use the auth context login to store tokens and redirect
+      await login(response.accessToken, response.refreshToken, userData)
+      
     } catch (error) {
-      setErrors({ submit: 'Invalid credentials. Please try again.' })
+      console.error('Login error:', error)
+      setErrors({ submit: error.message || 'Invalid credentials. Please try again.' })
     } finally {
       setIsLoading(false)
     }
@@ -105,12 +146,30 @@ function LoginPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Connect to backend API for password setup
-      console.log('Password setup:', { email: formData.email, ...passwordSetup })
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      // Handle successful password setup - redirect to dashboard
+      // Call API to set up password for first-time login
+      const response = await httpClient.post('/auth/setup-password', {
+        email: formData.email,
+        currentPassword: formData.password,
+        newPassword: passwordSetup.newPassword,
+      })
+      
+      // Decode JWT to get user info
+      const decoded = decodeJWT(response.accessToken)
+      
+      const userData = response.user || {
+        id: decoded.sub || decoded.userId,
+        email: decoded.email || formData.email,
+        fullName: decoded.fullName || decoded.name,
+        role: decoded.role,
+        mfaEnabled: decoded.mfaEnabled || false,
+      }
+      
+      // Use the auth context login to store tokens and redirect
+      await login(response.accessToken, response.refreshToken, userData)
+      
     } catch (error) {
-      setErrors({ submit: 'Failed to set password. Please try again.' })
+      console.error('Password setup error:', error)
+      setErrors({ submit: error.message || 'Failed to set password. Please try again.' })
     } finally {
       setIsLoading(false)
     }

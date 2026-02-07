@@ -10,7 +10,7 @@ export interface RegisterData {
   password: string;
   confirmPassword: string;
   fullName: string;
-  role: 'DOCTOR' | 'NURSE' | 'PATIENT';
+  role: 'SUPER_ADMIN' | 'SYSTEM_ADMIN' | 'RECEPTIONIST' | 'DOCTOR';
 }
 
 export interface User {
@@ -18,8 +18,9 @@ export interface User {
   username: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'DOCTOR' | 'NURSE' | 'PATIENT';
+  role: 'SUPER_ADMIN' | 'SYSTEM_ADMIN' | 'RECEPTIONIST' | 'DOCTOR';
   mfaEnabled: boolean;
+  isFirstLogin?: boolean;
 }
 
 export interface AuthResponse {
