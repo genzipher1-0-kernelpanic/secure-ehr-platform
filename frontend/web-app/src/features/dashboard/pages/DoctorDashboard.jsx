@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
+import { getDoctorMe, getDoctorPatients } from '@/features/care/api/careApi'
 
 const navItems = [
   {
@@ -43,55 +44,6 @@ const navItems = [
   },
 ]
 
-// Mock data for assigned patients
-const mockPatients = [
-  {
-    id: '1',
-    fullName: 'Alice Thompson',
-    age: 41,
-    gender: 'Female',
-    phone: '+1 555-0101',
-    email: 'alice.t@email.com',
-    bloodType: 'A+',
-    condition: 'Hypertension',
-    lastVisit: '2026-02-01',
-    nextAppointment: '2026-02-15',
-    allergies: 'Penicillin',
-    medicalHistory: 'Diagnosed with hypertension in 2022. Currently on medication.',
-    currentMedications: ['Lisinopril 10mg', 'Aspirin 81mg'],
-  },
-  {
-    id: '2',
-    fullName: 'Daniel Kim',
-    age: 61,
-    gender: 'Male',
-    phone: '+1 555-0104',
-    email: 'daniel.k@email.com',
-    bloodType: 'AB+',
-    condition: 'Coronary Artery Disease',
-    lastVisit: '2026-01-15',
-    nextAppointment: '2026-02-10',
-    allergies: 'None',
-    medicalHistory: 'Underwent angioplasty in 2024. Regular monitoring required.',
-    currentMedications: ['Clopidogrel 75mg', 'Atorvastatin 40mg', 'Metoprolol 50mg'],
-  },
-  {
-    id: '3',
-    fullName: 'Emma Wilson',
-    age: 35,
-    gender: 'Female',
-    phone: '+1 555-0105',
-    email: 'emma.w@email.com',
-    bloodType: 'O+',
-    condition: 'Arrhythmia',
-    lastVisit: '2026-02-03',
-    nextAppointment: '2026-02-20',
-    allergies: 'Sulfa drugs',
-    medicalHistory: 'Diagnosed with atrial fibrillation in 2025. Using cardiac monitoring.',
-    currentMedications: ['Warfarin 5mg', 'Digoxin 0.25mg'],
-  },
-]
-
 // Mock other specialists for referral
 const mockSpecialists = [
   { id: '1', fullName: 'Dr. Jennifer White', specialty: 'Neurology' },
@@ -111,7 +63,9 @@ const patientColumns = [
 ]
 
 export default function DoctorDashboard() {
-  const [patients, setPatients] = useState(mockPatients)
+  const [patients, setPatients] = useState([])
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true)
+  const [patientsError, setPatientsError] = useState('')
   const [isViewPatientModalOpen, setIsViewPatientModalOpen] = useState(false)
   const [isReferPatientModalOpen, setIsReferPatientModalOpen] = useState(false)
   const [isAddNotesModalOpen, setIsAddNotesModalOpen] = useState(false)
@@ -125,6 +79,61 @@ export default function DoctorDashboard() {
     notes: '',
   })
   const [newNotes, setNewNotes] = useState('')
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadPatients = async () => {
+      setIsLoadingPatients(true)
+      setPatientsError('')
+      try {
+        const doctor = await getDoctorMe()
+        const doctorUserId = doctor?.userId ?? doctor?.id
+        if (!doctorUserId) {
+          throw new Error('Doctor profile missing userId')
+        }
+        const assignedPatients = await getDoctorPatients(doctorUserId)
+        if (!isActive) return
+
+        const mapped = assignedPatients.map((patient) => {
+          const age = patient.dob
+            ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / 31557600000)
+            : ''
+          const gender = patient.sex ? patient.sex.charAt(0) + patient.sex.slice(1).toLowerCase() : 'N/A'
+          return {
+            id: String(patient.id),
+            fullName: patient.fullName,
+            age,
+            gender,
+            phone: patient.phone || 'N/A',
+            email: patient.email || 'N/A',
+            bloodType: 'N/A',
+            condition: 'N/A',
+            lastVisit: 'N/A',
+            nextAppointment: 'N/A',
+            allergies: 'N/A',
+            medicalHistory: 'N/A',
+            currentMedications: [],
+          }
+        })
+        setPatients(mapped)
+      } catch (error) {
+        if (!isActive) return
+        console.error('Failed to load doctor patients:', error)
+        setPatientsError('Failed to load patients from care service.')
+        setPatients([])
+      } finally {
+        if (isActive) {
+          setIsLoadingPatients(false)
+        }
+      }
+    }
+
+    loadPatients()
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const handleViewPatient = (patient) => {
     setSelectedPatient(patient)
@@ -273,6 +282,12 @@ export default function DoctorDashboard() {
         {/* Patients Table */}
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-4">My Patients</h2>
+          {patientsError && (
+            <p className="text-sm text-red-600 mb-3">{patientsError}</p>
+          )}
+          {isLoadingPatients && (
+            <p className="text-sm text-slate-500 mb-3">Loading patients...</p>
+          )}
           <DataTable
             columns={patientColumns}
             data={patients}
@@ -326,7 +341,9 @@ export default function DoctorDashboard() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-slate-900">{selectedPatient.fullName}</h3>
-                  <p className="text-slate-500">{selectedPatient.age} years old, {selectedPatient.gender}</p>
+                  <p className="text-slate-500">
+                    {selectedPatient.age ? `${selectedPatient.age} years old` : 'Age unknown'}, {selectedPatient.gender}
+                  </p>
                 </div>
               </div>
 
@@ -374,6 +391,9 @@ export default function DoctorDashboard() {
               <div>
                 <p className="text-sm text-slate-500 mb-2">Current Medications</p>
                 <div className="flex flex-wrap gap-2">
+                  {selectedPatient.currentMedications.length === 0 && (
+                    <span className="text-sm text-slate-500">No medications listed</span>
+                  )}
                   {selectedPatient.currentMedications.map((med, idx) => (
                     <span
                       key={idx}
@@ -550,7 +570,13 @@ export default function DoctorDashboard() {
                     type="number"
                     required
                     value={editPatientData.age}
-                    onChange={(e) => setEditPatientData({ ...editPatientData, age: parseInt(e.target.value) })}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setEditPatientData({
+                        ...editPatientData,
+                        age: value === '' ? '' : parseInt(value),
+                      })
+                    }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

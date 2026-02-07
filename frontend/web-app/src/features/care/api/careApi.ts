@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { AUTH_TOKEN_KEY } from '../../../lib/config/constants'
 
-// Care-service internal endpoints go through gateway but NOT under /api prefix
-const GATEWAY_BASE = 'http://localhost:8080'
+// Care-service base URL (direct)
+const GATEWAY_BASE = 'http://localhost:5005'
 
 function authHeaders() {
   const token = localStorage.getItem(AUTH_TOKEN_KEY)
@@ -67,6 +67,20 @@ export async function getPatient(patientId: string | number) {
 
 export async function getDoctor(doctorId: string | number) {
   const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors/${doctorId}`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export async function getDoctorMe() {
+  const response = await axios.get(`${GATEWAY_BASE}/api/doctors/me`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export async function getDoctorPatients(doctorUserId: string | number) {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors/${doctorUserId}/patients`, {
     headers: authHeaders(),
   })
   return response.data
