@@ -1,0 +1,258 @@
+# --------------------------------------------------------------------
+# PORT MAPPING REFERENCE (Development Only)
+#
+# NOTE:
+# - Host ports are exposed ONLY for local development, debugging,
+#   and admin UIs (phpMyAdmin, mongo-express, redis-commander).
+# - Inside Docker, services MUST communicate using service names
+#   (e.g., identity-mysql:3306, redis:6379).
+# - In production, these ports are typically NOT exposed.
+#
+# MySQL Databases (one per microservice)
+# -------------------------------------
+# 3307 -> identity-mysql     (identity_db)
+# 3308 -> patient-mysql      (patient_db)
+# 3309 -> ehr-mysql          (ehr_db)
+# 3310 -> appointment-mysql  (appointment_db)
+#
+# Database Admin UIs
+# ------------------
+# 8082 -> phpMyAdmin         (MySQL admin for all services)
+# 8081 -> mongo-express      (MongoDB admin UI)
+# 8083 -> redis-commander    (Redis admin UI)
+#
+# MongoDB (Audit Service)
+# ----------------------
+# 27017 -> mongodb           (audit logs, immutable events)
+#
+# Redis (Caching / Tokens / Rate limits)
+# --------------------------------------
+# 6379 -> redis              (cache, session data, rate limiting)
+#
+# SECURITY NOTE:
+# - Credentials used here are DEV-ONLY.
+# - Never expose database ports or admin UIs in production.
+# - In production, services access databases via private networks
+#   or managed cloud databases.
+# --------------------------------------------------------------------
+
+
+services:
+  # ---------------------------
+  # MySQL databases (one per service)
+  # ---------------------------
+
+  identity-mysql:
+    container_name: ms_mysql_identity
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: identity_db
+      MYSQL_USER: Admin
+      MYSQL_PASSWORD: "Admin@$20260702"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - identity_mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  patient-mysql:
+    container_name: ms_mysql_patient
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: patient_db
+      MYSQL_USER: Admin
+      MYSQL_PASSWORD: "Admin@$20260702"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - patient_mysql:/var/lib/mysql
+    ports:
+      - "3308:3306"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  ehr-mysql:
+    container_name: ms_mysql_ehr
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: ehr_db
+      MYSQL_USER: Admin
+      MYSQL_PASSWORD: "Admin@$20260702"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ehr_mysql:/var/lib/mysql
+    ports:
+      - "3309:3306"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  appointment-mysql:
+    container_name: ms_mysql_appointment
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: appointment_db
+      MYSQL_USER: Admin
+      MYSQL_PASSWORD: "Admin@$20260702"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - appointment_mysql:/var/lib/mysql
+    ports:
+      - "3310:3306"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  # Optional MySQL UI (handy in dev)
+  phpmyadmin:
+    container_name: ms_phpmyadmin
+    image: phpmyadmin:5
+    environment:
+      PMA_HOSTS: identity-mysql,patient-mysql,ehr-mysql,appointment-mysql
+      PMA_PORTS: 3306,3306,3306,3306
+      PMA_ARBITRARY: 1
+    ports:
+      - "8082:80"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    depends_on:
+      identity-mysql:
+        condition: service_healthy
+      patient-mysql:
+        condition: service_healthy
+      ehr-mysql:
+        condition: service_healthy
+      appointment-mysql:
+        condition: service_healthy
+
+  # ---------------------------
+  # MongoDB (Audit service)
+  # ---------------------------
+
+  mongodb:
+    container_name: ms_mongo_audit
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: Admin
+      MONGO_INITDB_ROOT_PASSWORD: Admin@$20260702
+    volumes:
+      - mongo_audit:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongo-express:
+    container_name: ms_mongo_express
+    image: mongo-express:1
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: "mongodb://Admin:Admin@$20260702@mongodb:27017/?authSource=admin"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # ---------------------------
+  # Redis (Caching)
+  # ---------------------------
+
+  redis:
+    container_name: ms_redis_cache
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "redis123"]
+    volumes:
+      - redis_cache:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a redis123 ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  redis-commander:
+    container_name: ms_redis_commander
+    image: rediscommander/redis-commander:latest
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redis123
+    ports:
+      - "8083:8081"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: ms_zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  identity_mysql:
+  patient_mysql:
+  ehr_mysql:
+  appointment_mysql:
+  mongo_audit:
+  redis_cache:
