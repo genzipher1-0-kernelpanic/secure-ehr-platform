@@ -68,6 +68,11 @@ public class JwtServiceImpl implements JwtService{
     }
 
     @Override
+    public String extractUsername(String token) {
+        return extractSubject(token);
+    }
+
+    @Override
     public Long extractUserId(String token) {
         Object uid = parseClaims(token).getPayload().get("uid");
         if (uid == null) return null;

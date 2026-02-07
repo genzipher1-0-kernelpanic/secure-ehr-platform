@@ -29,8 +29,8 @@ export function getDashboardPath(role) {
       return '/super-admin'
     case ROLES.SYSTEM_ADMIN:
       return '/system-admin'
-    case ROLES.RECEPTIONIST:
-      return '/receptionist'
+    case ROLES.ADMIN:
+      return '/admin'
     case ROLES.DOCTOR:
       return '/doctor'
     default:

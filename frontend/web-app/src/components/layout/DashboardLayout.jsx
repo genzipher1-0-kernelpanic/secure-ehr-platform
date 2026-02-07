@@ -55,7 +55,24 @@ export default function DashboardLayout({ children, navItems, title }) {
         {/* Sidebar */}
         <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200`}>
           <nav className="p-4 space-y-1">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
+              if (item.external) {
+                return (
+                  <a
+                    key={item.href || index}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <span className="w-5 h-5">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
+                    <svg className="w-3.5 h-3.5 ml-auto text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                )
+              }
               const isActive = location.pathname === item.path
               return (
                 <Link

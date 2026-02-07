@@ -108,6 +108,10 @@ function LoginPage() {
         password: formData.password,
       })
       
+      // Normalise field names — backend returns snake_case
+      const accessToken = response.accessToken || response.access_token
+      const refreshToken = response.refreshToken || response.refresh_token
+      
       // Check if it's a first login (user needs to set up password)
       if (response.isFirstLogin) {
         setIsFirstLogin(true)
@@ -116,19 +120,19 @@ function LoginPage() {
       }
       
       // Decode JWT to get user info
-      const decoded = decodeJWT(response.accessToken)
+      const decoded = decodeJWT(accessToken)
       
       // Extract user data from response or decode from token
       const userData = response.user || {
-        id: decoded.sub || decoded.userId,
-        email: decoded.email || formData.email,
-        fullName: decoded.fullName || decoded.name,
-        role: decoded.role,
+        id: decoded.uid || decoded.sub || decoded.userId,
+        email: decoded.sub || decoded.email || formData.email,
+        fullName: decoded.fullName || decoded.name || '',
+        role: decoded.role || response.role,
         mfaEnabled: decoded.mfaEnabled || false,
       }
       
       // Use the auth context login to store tokens and redirect
-      await login(response.accessToken, response.refreshToken, userData)
+      await login(accessToken, refreshToken, userData)
       
     } catch (error) {
       console.error('Login error:', error)

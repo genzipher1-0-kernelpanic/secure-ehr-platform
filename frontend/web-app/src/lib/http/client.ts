@@ -78,8 +78,23 @@ class HttpClient {
   }
 
   private formatError(error: AxiosError): Error {
-    const message = (error.response?.data as any)?.message || error.message || 'An error occurred';
-    return new Error(message);
+    const data = error.response?.data as any;
+    const serverMessage = data?.message || data?.error;
+
+    if (serverMessage) {
+      return new Error(serverMessage);
+    }
+
+    // Provide meaningful messages for common HTTP status codes when backend body is empty
+    const status = error.response?.status;
+    if (status === 403) {
+      return new Error('Access denied — you may have reached the account creation limit for this role, or you lack the required permissions.');
+    }
+    if (status === 409) {
+      return new Error('A user with this email already exists.');
+    }
+
+    return new Error(error.message || 'An error occurred');
   }
 
   // HTTP methods

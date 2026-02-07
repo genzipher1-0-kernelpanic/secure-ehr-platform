@@ -25,6 +25,8 @@ public interface JwtService {
 
     Claims parseAndValidate(String token);
 
+    String extractUsername(String token);
+
     Instant extractExpiration(String token);
 
     boolean isTokenValid(String token, String expectedSubject);

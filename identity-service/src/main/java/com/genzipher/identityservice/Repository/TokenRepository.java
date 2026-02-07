@@ -33,4 +33,20 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
     """)
     int revokeAllActiveTokenPairs(Long userId, Instant now);
 
+    @Query("""
+        select t
+          from Token t
+         where t.user.id = :userId
+           and t.refreshTokenHash = :hash
+           and t.refreshRevokedAt is null
+           and t.refreshExpiresAt > :now
+    """)
+    Optional<Token> findActiveRefreshToken(
+            Long userId,
+            byte[] hash,
+            Instant now
+    );
+
+
+
 }

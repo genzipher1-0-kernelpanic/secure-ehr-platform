@@ -43,11 +43,11 @@ function AppRoutes() {
         }
       />
       
-      {/* Receptionist Routes */}
+      {/* Admin Routes */}
       <Route
-        path="/receptionist/*"
+        path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.RECEPTIONIST]}>
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
             <ReceptionistDashboard />
           </ProtectedRoute>
         }

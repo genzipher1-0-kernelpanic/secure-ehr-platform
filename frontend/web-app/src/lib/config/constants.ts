@@ -5,8 +5,9 @@ export const USER_KEY = 'user';
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   SYSTEM_ADMIN: 'SYSTEM_ADMIN',
-  RECEPTIONIST: 'RECEPTIONIST',
+  ADMIN: 'ADMIN',           // Backend role for admins (hospital front-desk)
   DOCTOR: 'DOCTOR',
+  PATIENT: 'PATIENT',
 } as const;
 
 export type UserRole = typeof ROLES[keyof typeof ROLES];
@@ -17,6 +18,9 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
+    DELETE_USER: (id: string | number) => `/auth/delete/${id}`,
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
     MFA_SETUP: '/auth/mfa/setup',
     MFA_ENABLE: '/auth/mfa/enable',
     MFA_VERIFY: '/auth/mfa/verify',

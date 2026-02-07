@@ -3,7 +3,9 @@ package com.genzipher.identityservice.DTO;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record LoginRequest(
+public record ResetPasswordRequest(
         @Email @NotBlank String email,
-        @NotBlank String password
+        @NotBlank String code,
+        @NotBlank String newPassword,
+        @NotBlank String confirmPassword
 ) {}

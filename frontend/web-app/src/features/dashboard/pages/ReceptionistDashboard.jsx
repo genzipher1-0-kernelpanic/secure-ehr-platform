@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
+import { httpClient } from '@/lib/http/client'
+import { API_ENDPOINTS } from '@/lib/config/constants'
+import { createProfile, createAssignment, getPatient, getDoctor } from '@/features/care/api/careApi'
 
 const navItems = [
   {
-    path: '/receptionist',
+    path: '/admin',
     label: 'Dashboard',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +18,7 @@ const navItems = [
     ),
   },
   {
-    path: '/receptionist/patients',
+    path: '/admin/patients',
     label: 'Patients',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +27,7 @@ const navItems = [
     ),
   },
   {
-    path: '/receptionist/appointments',
+    path: '/admin/appointments',
     label: 'Appointments',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +36,7 @@ const navItems = [
     ),
   },
   {
-    path: '/receptionist/doctors',
+    path: '/admin/doctors',
     label: 'Doctors',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,19 +46,16 @@ const navItems = [
   },
 ]
 
-// Mock data
-const mockPatients = [
-  { id: '1', fullName: 'Alice Thompson', dateOfBirth: '1985-03-15', phone: '+1 555-0101', email: 'alice.t@email.com', bloodType: 'A+', assignedDoctor: 'Dr. Robert Miller', lastVisit: '2026-02-01' },
-  { id: '2', fullName: 'Bob Martinez', dateOfBirth: '1978-08-22', phone: '+1 555-0102', email: 'bob.m@email.com', bloodType: 'O-', assignedDoctor: 'Dr. Jennifer White', lastVisit: '2026-01-28' },
-  { id: '3', fullName: 'Carol Anderson', dateOfBirth: '1990-11-30', phone: '+1 555-0103', email: 'carol.a@email.com', bloodType: 'B+', assignedDoctor: 'Dr. David Lee', lastVisit: '2026-02-05' },
-  { id: '4', fullName: 'Daniel Kim', dateOfBirth: '1965-05-10', phone: '+1 555-0104', email: 'daniel.k@email.com', bloodType: 'AB+', assignedDoctor: 'Dr. Robert Miller', lastVisit: '2026-01-15' },
+// Pre-seeded users from DB (no list API available)
+const initialPatients = [
+  { id: '3', fullName: 'Patient 1', email: 'patient1@genzipher.com', dateOfBirth: '', phone: '', nic: '', bloodType: '', assignedDoctor: '', lastVisit: '' },
 ]
 
-const mockDoctors = [
-  { id: '1', fullName: 'Dr. Robert Miller', specialty: 'Cardiology' },
-  { id: '2', fullName: 'Dr. Jennifer White', specialty: 'Neurology' },
-  { id: '3', fullName: 'Dr. David Lee', specialty: 'Orthopedics' },
-  { id: '4', fullName: 'Dr. Sarah Johnson', specialty: 'Pediatrics' },
+const initialDoctors = [
+  { id: '2', fullName: 'Doctor 1', email: 'doctor1@genzipher.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
+  { id: '4', fullName: 'Doctor 2', email: 'doctor2@genzipher.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
+  { id: '8', fullName: 'Doctor 3', email: 'doctor@gmail.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
+  { id: '9', fullName: 'Doctor 4', email: 'doctor@gmail.cdsasaf', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
 ]
 
 const patientColumns = [
@@ -67,10 +67,41 @@ const patientColumns = [
   { key: 'lastVisit', label: 'Last Visit' },
 ]
 
+const doctorColumns = [
+  { key: 'fullName', label: 'Name' },
+  { key: 'specialization', label: 'Specialization' },
+  { key: 'phone', label: 'Phone' },
+  {
+    key: 'status',
+    label: 'Status',
+    render: (value) => (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+        value === 'Available' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+      }`}>
+        {value}
+      </span>
+    ),
+  },
+]
+
+function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return 0
+  const today = new Date()
+  const birth = new Date(dateOfBirth)
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age
+}
+
 export default function ReceptionistDashboard() {
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false)
+  const [isAddDoctorModalOpen, setIsAddDoctorModalOpen] = useState(false)
   const [isViewPatientModalOpen, setIsViewPatientModalOpen] = useState(false)
-  const [patients, setPatients] = useState(mockPatients)
+  const [patients, setPatients] = useState(initialPatients)
+  const [doctors, setDoctors] = useState(initialDoctors)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [newPatient, setNewPatient] = useState({
@@ -78,6 +109,8 @@ export default function ReceptionistDashboard() {
     dateOfBirth: '',
     phone: '',
     email: '',
+    nic: '',
+    sex: 'MALE',
     bloodType: '',
     address: '',
     emergencyContact: '',
@@ -86,6 +119,23 @@ export default function ReceptionistDashboard() {
     allergies: '',
     assignedDoctor: '',
   })
+  const [newDoctor, setNewDoctor] = useState({
+    email: '',
+    fullName: '',
+    phone: '',
+    specialization: '',
+    licenceNumber: '',
+    nic: '',
+  })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [successMessage, setSuccessMessage] = useState(null)
+
+  const patientAge = useMemo(() => calculateAge(newPatient.dateOfBirth), [newPatient.dateOfBirth])
+  const isNicRequired = patientAge > 16
+
+  const availableDoctors = doctors.filter((d) => d.status === 'Available')
 
   const filteredPatients = patients.filter(
     (patient) =>
@@ -94,28 +144,140 @@ export default function ReceptionistDashboard() {
       patient.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleAddPatient = (e) => {
+  const handleAddPatient = async (e) => {
     e.preventDefault()
-    const patient = {
-      id: String(patients.length + 1),
-      ...newPatient,
-      lastVisit: new Date().toISOString().split('T')[0],
+    if (isNicRequired && !newPatient.nic.trim()) {
+      alert('NIC is mandatory for patients over 16 years of age.')
+      return
     }
-    setPatients([...patients, patient])
-    setNewPatient({
-      fullName: '',
-      dateOfBirth: '',
-      phone: '',
-      email: '',
-      bloodType: '',
-      address: '',
-      emergencyContact: '',
-      emergencyPhone: '',
-      medicalHistory: '',
-      allergies: '',
-      assignedDoctor: '',
-    })
-    setIsAddPatientModalOpen(false)
+
+    setIsSubmitting(true)
+    setSubmitError('')
+    setSuccessMessage(null)
+
+    try {
+      // Step 1: Register patient user via auth gateway (password auto-generated)
+      const authResponse = await httpClient.post(API_ENDPOINTS.AUTH.REGISTER, {
+        email: newPatient.email,
+        role: 'PATIENT',
+      })
+      const userId = authResponse.userId || authResponse.id
+      const generatedPassword = authResponse.password
+
+      // Step 2: Create patient profile in care service
+      const profileResponse = await createProfile({
+        userId,
+        role: 'PATIENT',
+        patientProfile: {
+          fullName: newPatient.fullName,
+          dob: newPatient.dateOfBirth,
+          sex: newPatient.sex || 'MALE',
+          phone: newPatient.phone,
+          address: newPatient.address || undefined,
+          emergencyContact: newPatient.emergencyContact || undefined,
+        },
+      })
+
+      // Step 3: Assign doctor if selected
+      if (newPatient.assignedDoctor) {
+        const selectedDoc = doctors.find(d => d.fullName === newPatient.assignedDoctor)
+        if (selectedDoc) {
+          await createAssignment({
+            patientId: profileResponse.profileId,
+            doctorUserId: selectedDoc.userId || selectedDoc.id,
+            reason: 'Initial assignment at registration',
+          })
+        }
+      }
+
+      // Add to local state for immediate UI feedback
+      const patient = {
+        id: profileResponse.profileId,
+        ...newPatient,
+        lastVisit: new Date().toISOString().split('T')[0],
+      }
+      setPatients([...patients, patient])
+      setSuccessMessage(
+        `Patient registered!\nEmail: ${authResponse.email}\nTemporary Password: ${generatedPassword}\n\nPlease save this password — it won't be shown again.`
+      )
+      setNewPatient({
+        fullName: '',
+        dateOfBirth: '',
+        phone: '',
+        email: '',
+        nic: '',
+        sex: 'MALE',
+        bloodType: '',
+        address: '',
+        emergencyContact: '',
+        emergencyPhone: '',
+        medicalHistory: '',
+        allergies: '',
+        assignedDoctor: '',
+      })
+      setIsAddPatientModalOpen(false)
+    } catch (error) {
+      console.error('Failed to register patient:', error)
+      setSubmitError(error.message || 'Failed to register patient. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleAddDoctor = async (e) => {
+    e.preventDefault()
+
+    setIsSubmitting(true)
+    setSubmitError('')
+    setSuccessMessage(null)
+
+    try {
+      // Step 1: Register doctor user via auth gateway (password auto-generated)
+      const authResponse = await httpClient.post(API_ENDPOINTS.AUTH.REGISTER, {
+        email: newDoctor.email,
+        role: 'DOCTOR',
+      })
+      const userId = authResponse.userId || authResponse.id
+      const generatedPassword = authResponse.password
+
+      // Step 2: Create doctor profile in care service
+      const profileResponse = await createProfile({
+        userId,
+        role: 'DOCTOR',
+        doctorProfile: {
+          fullName: newDoctor.fullName,
+          specialization: newDoctor.specialization,
+          licenseNumber: newDoctor.licenceNumber,
+          phone: newDoctor.phone,
+        },
+      })
+
+      // Add to local state
+      const doctor = {
+        id: profileResponse.profileId,
+        userId,
+        ...newDoctor,
+        status: 'Available',
+      }
+      setDoctors([...doctors, doctor])
+      setSuccessMessage(
+        `Doctor registered!\nEmail: ${authResponse.email}\nTemporary Password: ${generatedPassword}\n\nPlease save this password — it won't be shown again.`
+      )
+      setNewDoctor({
+        email: '',
+        fullName: '',
+        phone: '',
+        specialization: '',
+        licenceNumber: '',
+        nic: '',
+      })
+      setIsAddDoctorModalOpen(false)
+    } catch (error) {
+      console.error('Failed to register doctor:', error)
+      setSubmitError(error.message || 'Failed to register doctor. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleViewPatient = (patient) => {
@@ -124,24 +286,52 @@ export default function ReceptionistDashboard() {
   }
 
   return (
-    <DashboardLayout navItems={navItems} title="Receptionist">
+    <DashboardLayout navItems={navItems} title="Admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Reception Dashboard</h1>
-            <p className="text-slate-500 mt-1">Register and manage patient information</p>
+            <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+            <p className="text-slate-500 mt-1">Register and manage patients & doctors</p>
           </div>
-          <button
-            onClick={() => setIsAddPatientModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Register Patient
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsAddPatientModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Register Patient
+            </button>
+            <button
+              onClick={() => setIsAddDoctorModalOpen(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Register Doctor
+            </button>
+          </div>
         </div>
+
+        {/* Success Banner */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-green-800">Registration Successful</h3>
+                <pre className="mt-1 text-sm text-green-700 whitespace-pre-wrap font-mono">{successMessage}</pre>
+              </div>
+              <button onClick={() => setSuccessMessage(null)} className="text-green-500 hover:text-green-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -156,12 +346,12 @@ export default function ReceptionistDashboard() {
             }
           />
           <StatsCard
-            title="Today's Registrations"
-            value="12"
+            title="Total Doctors"
+            value={doctors.length}
             color="green"
             icon={
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
           />
@@ -177,13 +367,25 @@ export default function ReceptionistDashboard() {
           />
           <StatsCard
             title="Available Doctors"
-            value={mockDoctors.length}
+            value={availableDoctors.length}
             color="orange"
             icon={
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
+          />
+        </div>
+
+        {/* Doctor Summary */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Doctor Summary</h2>
+          </div>
+          <DataTable
+            columns={doctorColumns}
+            data={doctors}
+            emptyMessage="No doctors registered"
           />
         </div>
 
@@ -241,6 +443,11 @@ export default function ReceptionistDashboard() {
           size="lg"
         >
           <form onSubmit={handleAddPatient} className="space-y-4">
+            {submitError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
@@ -262,6 +469,45 @@ export default function ReceptionistDashboard() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+            </div>
+
+            {/* Sex field (required by care API) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sex *</label>
+                <select
+                  required
+                  value={newPatient.sex}
+                  onChange={(e) => setNewPatient({ ...newPatient, sex: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+              </div>
+              <div />
+            </div>
+
+            {/* NIC field - mandatory if patient > 16 years */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                NIC {isNicRequired ? '*' : ''}
+                {newPatient.dateOfBirth && (
+                  <span className="text-xs text-slate-400 ml-2">
+                    (Age: {patientAge} years{isNicRequired ? ' — NIC required' : ''})
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                required={isNicRequired}
+                value={newPatient.nic}
+                onChange={(e) => setNewPatient({ ...newPatient, nic: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder-slate-400 ${
+                  isNicRequired ? 'border-blue-400' : 'border-slate-300'
+                }`}
+                placeholder={isNicRequired ? 'NIC is mandatory for patients over 16' : 'Enter NIC (optional)'}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -314,9 +560,9 @@ export default function ReceptionistDashboard() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select Doctor</option>
-                  {mockDoctors.map((doc) => (
+                  {doctors.map((doc) => (
                     <option key={doc.id} value={doc.fullName}>
-                      {doc.fullName} - {doc.specialty}
+                      {doc.fullName} - {doc.specialization}
                     </option>
                   ))}
                 </select>
@@ -375,18 +621,117 @@ export default function ReceptionistDashboard() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setIsAddPatientModalOpen(false)}
-                className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                Cancel
+              <button type="button" onClick={() => setIsAddPatientModalOpen(false)} className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+              <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSubmitting ? 'Registering...' : 'Register Patient'}
               </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Register Patient
+            </div>
+          </form>
+        </Modal>
+
+        {/* Register Doctor Modal */}
+        <Modal
+          isOpen={isAddDoctorModalOpen}
+          onClose={() => setIsAddDoctorModalOpen(false)}
+          title="Register New Doctor"
+          size="lg"
+        >
+          <form onSubmit={handleAddDoctor} className="space-y-4">
+            <p className="text-sm text-slate-500">Enter the doctor's details. A temporary password will be auto-generated.</p>
+            {submitError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={newDoctor.email}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newDoctor.fullName}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, fullName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter full name"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Phone *</label>
+                <input
+                  type="tel"
+                  required
+                  value={newDoctor.phone}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">NIC *</label>
+                <input
+                  type="text"
+                  required
+                  value={newDoctor.nic}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, nic: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter NIC number"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Specialization *</label>
+                <select
+                  required
+                  value={newDoctor.specialization}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Select Specialization</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                  <option value="Pediatrics">Pediatrics</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="General Medicine">General Medicine</option>
+                  <option value="Surgery">Surgery</option>
+                  <option value="Psychiatry">Psychiatry</option>
+                  <option value="Oncology">Oncology</option>
+                  <option value="ENT">ENT</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Licence Number *</label>
+                <input
+                  type="text"
+                  required
+                  value={newDoctor.licenceNumber}
+                  onChange={(e) => setNewDoctor({ ...newDoctor, licenceNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Enter medical licence number"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => setIsAddDoctorModalOpen(false)} className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+              <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSubmitting ? 'Registering...' : 'Register Doctor'}
               </button>
             </div>
           </form>
@@ -413,27 +758,33 @@ export default function ReceptionistDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Phone</p>
-                  <p className="font-medium text-slate-900">{selectedPatient.phone}</p>
+                  <p className="text-sm text-slate-500">NIC</p>
+                  <p className="font-medium text-slate-900">{selectedPatient.nic || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">Email</p>
-                  <p className="font-medium text-slate-900">{selectedPatient.email || 'N/A'}</p>
+                  <p className="text-sm text-slate-500">Phone</p>
+                  <p className="font-medium text-slate-900">{selectedPatient.phone}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <p className="text-sm text-slate-500">Email</p>
+                  <p className="font-medium text-slate-900">{selectedPatient.email || 'N/A'}</p>
+                </div>
+                <div>
                   <p className="text-sm text-slate-500">Blood Type</p>
                   <p className="font-medium text-slate-900">{selectedPatient.bloodType}</p>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Assigned Doctor</p>
                   <p className="font-medium text-slate-900">{selectedPatient.assignedDoctor}</p>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">Last Visit</p>
-                <p className="font-medium text-slate-900">{selectedPatient.lastVisit}</p>
+                <div>
+                  <p className="text-sm text-slate-500">Last Visit</p>
+                  <p className="font-medium text-slate-900">{selectedPatient.lastVisit}</p>
+                </div>
               </div>
               <div className="flex justify-end mt-6">
                 <button

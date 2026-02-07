@@ -18,7 +18,8 @@
   }
 
   input, textarea, select {
-    @apply text-[var(--text-primary)];
+    @apply text-slate-900;
+    color: #0F172A !important;
   }
 }
 

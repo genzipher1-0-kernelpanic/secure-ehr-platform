@@ -3,7 +3,7 @@ package com.genzipher.identityservice.DTO;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record LoginRequest(
-        @Email @NotBlank String email,
-        @NotBlank String password
-) {}
+public record ForgotPasswordRequest(
+        @Email @NotBlank String email
+) {
+}
