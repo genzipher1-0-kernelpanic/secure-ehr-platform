@@ -1,0 +1,46 @@
+server:
+  port: 5006
+
+spring:
+  application:
+    name: ehr-service
+  datasource:
+    url: ${EHR_DB_URL:jdbc:mysql://localhost:3306/ehr_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${EHR_DB_USERNAME:root}
+    password: ${EHR_DB_PASSWORD:mapa}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+  flyway:
+    enabled: false
+  servlet:
+    multipart:
+      max-file-size: ${EHR_MAX_UPLOAD_SIZE:10MB}
+      max-request-size: ${EHR_MAX_UPLOAD_SIZE:10MB}
+
+security:
+  jwt:
+    issuer: ${REHR_JWT_ISSUE:identity-service}
+    audience: ${EHR_JWT_AUDIENCE:your-audience}
+    secret: ${EHR_JWT_SECRET:CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS}
+    clockSkewSeconds: ${EHR_JWT_CLOCK_SKEW:30}
+
+storage:
+  baseDir: ${EHR_STORAGE_BASEDIR:./ehr-storage}
+
+crypto:
+  masterKeyBase64: ${EHR_MASTER_KEY_BASE64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+  keyId: ${EHR_MASTER_KEY_ID:v1}
+
+rateLimit:
+  export:
+    tokensPerMinute: ${EHR_EXPORT_TOKENS_PER_MINUTE:5}
+    bucketCapacity: ${EHR_EXPORT_BUCKET_CAPACITY:5}
+
+logging:
+  level:
+    org.springframework.web: INFO
