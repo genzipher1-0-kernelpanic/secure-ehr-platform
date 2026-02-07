@@ -93,4 +93,17 @@ public class ProfileService {
         dto.setPhone(doctor.getPhone());
         return dto;
     }
+
+    public DoctorProfileDto getDoctorByUserId(Long userId) {
+        Doctor doctor = doctorRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("Doctor not found"));
+        DoctorProfileDto dto = new DoctorProfileDto();
+        dto.setId(doctor.getId());
+        dto.setUserId(doctor.getUserId());
+        dto.setFullName(doctor.getFullName());
+        dto.setSpecialization(doctor.getSpecialization());
+        dto.setLicenseNumber(doctor.getLicenseNumber());
+        dto.setPhone(doctor.getPhone());
+        return dto;
+    }
 }
