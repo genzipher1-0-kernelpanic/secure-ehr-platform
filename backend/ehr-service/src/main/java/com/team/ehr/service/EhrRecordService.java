@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.team.ehr.crypto.CryptoResult;
 import com.team.ehr.crypto.CryptoService;
+import com.team.ehr.dto.EhrCreateRequest;
+import com.team.ehr.dto.EhrCreateResponse;
 import com.team.ehr.dto.EhrPatientResponse;
 import com.team.ehr.dto.EhrRecordDto;
 import com.team.ehr.dto.EhrUpdateRequest;
@@ -88,6 +90,51 @@ public class EhrRecordService {
                 ? versionRepository.findByPatientIdOrderByCreatedAtDesc(patientId)
                 : versionRepository.findByPatientIdAndCategoryOrderByVersionDesc(patientId, category);
         return versions.stream().map(this::toVersionDto).toList();
+    }
+
+    @Transactional
+    public EhrCreateResponse createRecord(Long patientId, EhrCreateRequest request) {
+        EhrCategory category = request.getCategory();
+        accessControlService.assertCanUpdate(patientId, category);
+        validatePatchPolicy(category, request.getData());
+        if (currentRepository.existsByPatientIdAndCategory(patientId, category)) {
+            throw new ConflictException("EHR record already exists");
+        }
+        if (!request.getData().isObject()) {
+            throw new BadRequestException("EHR payload must be a JSON object");
+        }
+
+        try {
+            String json = objectMapper.writeValueAsString(request.getData());
+            CryptoResult encrypted = cryptoService.encryptJson(json);
+            int version = 1;
+
+            EhrRecordCurrent current = new EhrRecordCurrent();
+            current.setPatientId(patientId);
+            current.setCategory(category);
+            current.setCurrentVersion(version);
+            current.setCiphertext(encrypted.getCiphertext());
+            current.setContentHash(encrypted.getHashHex());
+            current.setKeyId(cryptoService.getKeyId());
+            currentRepository.save(current);
+
+            EhrRecordVersion recordVersion = new EhrRecordVersion();
+            recordVersion.setEhrId(current.getId());
+            recordVersion.setPatientId(patientId);
+            recordVersion.setCategory(category);
+            recordVersion.setVersion(version);
+            recordVersion.setCiphertext(encrypted.getCiphertext());
+            recordVersion.setContentHash(encrypted.getHashHex());
+            recordVersion.setKeyId(cryptoService.getKeyId());
+            recordVersion.setCreatedByUserId(SecurityUtil.getUserId());
+            recordVersion.setCreatedByRole(SecurityUtil.getRole().name());
+            versionRepository.save(recordVersion);
+
+            auditService.log("CREATE", patientId, category, current.getId(), null, version);
+            return new EhrCreateResponse(version);
+        } catch (Exception ex) {
+            throw new BadRequestException("Unable to create record");
+        }
     }
 
     @Transactional

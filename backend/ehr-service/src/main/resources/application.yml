@@ -29,12 +29,30 @@ security:
     secret: ${EHR_JWT_SECRET:CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS}
     clockSkewSeconds: ${EHR_JWT_CLOCK_SKEW:30}
 
+internal:
+  service:
+    token: ${INTERNAL_SERVICE_TOKEN:ehr}
+
 storage:
   baseDir: ${EHR_STORAGE_BASEDIR:./ehr-storage}
 
 crypto:
   masterKeyBase64: ${EHR_MASTER_KEY_BASE64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
   keyId: ${EHR_MASTER_KEY_ID:v1}
+
+chat:
+  questions:
+    - id: medication-summary
+      text: "Summarize the patient's current medications and any potential concerns."
+    - id: allergy-risk
+      text: "Based on allergies and conditions, highlight any clinical risks."
+    - id: vitals-trend
+      text: "Summarize recent vitals and flag anything outside normal ranges."
+
+gemini:
+  apiKey: ${GEMINI_API_KEY:AIzaSyDodNVOcjRRFKj2zPaeTuNyMX_oseKUiIc}
+  model: ${GEMINI_MODEL:gen-lang-client-0159223267}
+  endpoint: ${GEMINI_ENDPOINT:https://generativelanguage.googleapis.com/v1beta/models}
 
 rateLimit:
   export:

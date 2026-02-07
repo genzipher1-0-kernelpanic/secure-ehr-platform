@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EhrRecordCurrentRepository extends JpaRepository<EhrRecordCurrent, Long> {
     Optional<EhrRecordCurrent> findByPatientIdAndCategory(Long patientId, EhrCategory category);
+    boolean existsByPatientIdAndCategory(Long patientId, EhrCategory category);
 }

@@ -88,4 +88,14 @@ public class AccessControlService {
         return assignmentRepository.existsByPatientIdAndDoctorUserIdAndEndedAtIsNull(patientId, doctorUserId);
     }
 
+    public void assertDoctorAssigned(Long patientId) {
+        if (SecurityUtil.getRole() != UserRole.DOCTOR) {
+            throw new ForbiddenException("Doctor role required");
+        }
+        Long doctorUserId = SecurityUtil.getUserId();
+        if (!isAssigned(patientId, doctorUserId)) {
+            throw new ForbiddenException("Doctor not assigned to patient");
+        }
+    }
+
 }
