@@ -2,6 +2,7 @@ com/ehrplatform/audit/service/AuditEventStoreService.class
 com/ehrplatform/audit/repository/IntegrityCheckRunRepository.class
 com/ehrplatform/audit/entity/AuditEvent$AuditEventBuilder.class
 com/ehrplatform/audit/dto/AuditQueryRequest$AuditQueryRequestBuilder.class
+com/ehrplatform/audit/kafka/KafkaProducerConfig.class
 com/ehrplatform/audit/kafka/KafkaConsumerConfig.class
 com/ehrplatform/audit/dto/IntegrityVerifyRequest$IntegrityVerifyRequestBuilder.class
 com/ehrplatform/audit/dto/AuditSeverity.class
@@ -9,12 +10,14 @@ com/ehrplatform/audit/controller/AlertController.class
 com/ehrplatform/audit/repository/AlertDedupKeyRepository.class
 com/ehrplatform/audit/entity/AlertDedupKey.class
 com/ehrplatform/audit/security/JwtService.class
+com/ehrplatform/audit/dto/AlertMessage$AlertMessageBuilder.class
 com/ehrplatform/audit/dto/AuditEventMessage$AuditEventMessageBuilder.class
 com/ehrplatform/audit/dto/AuditOutcomes.class
 com/ehrplatform/audit/dto/AuditEventResponse$AuditEventResponseBuilder.class
 com/ehrplatform/audit/repository/AuditEventRepository.class
 com/ehrplatform/audit/entity/IntegrityCheckRun.class
 com/ehrplatform/audit/entity/Alert$AlertBuilder.class
+com/ehrplatform/audit/dto/AlertMessage.class
 com/ehrplatform/audit/dto/AuditEventTypes.class
 com/ehrplatform/audit/service/AlertDetectionService.class
 com/ehrplatform/audit/entity/AuditEvent.class
@@ -35,4 +38,5 @@ com/ehrplatform/audit/security/SecurityConfig.class
 com/ehrplatform/audit/dto/AuditEventMessage.class
 com/ehrplatform/audit/service/HashChainService.class
 com/ehrplatform/audit/entity/Alert.class
+com/ehrplatform/audit/kafka/AlertPublisher.class
 com/ehrplatform/audit/service/IntegrityVerificationService.class

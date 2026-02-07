@@ -35,16 +35,20 @@ public class AuditEventStoreService {
     /**
      * Store a new audit event with hash chain.
      * Handles idempotency via request_id unique constraint.
+     * Normalizes minimal events from care-service by filling defaults.
      *
      * @param message The audit event message from Kafka
      * @return The stored audit event, or existing one if duplicate
      */
     @Transactional
     public AuditEvent storeEvent(AuditEventMessage message) {
+        // Normalize the message - generate requestId if missing
+        String effectiveRequestId = message.getEffectiveRequestId();
+        
         // Idempotency check
-        Optional<AuditEvent> existing = auditEventRepository.findByRequestId(message.getRequestId());
+        Optional<AuditEvent> existing = auditEventRepository.findByRequestId(effectiveRequestId);
         if (existing.isPresent()) {
-            log.info("Duplicate event detected, requestId={}", message.getRequestId());
+            log.info("Duplicate event detected, requestId={}", effectiveRequestId);
             return existing.get();
         }
 
@@ -52,17 +56,17 @@ public class AuditEventStoreService {
         String prevHash = auditEventRepository.findLatestEventHash()
                 .orElse(hashChainService.getGenesisHash());
 
-        // Build entity
+        // Build entity with normalized/default values for missing fields
         AuditEvent event = AuditEvent.builder()
-                .occurredAt(message.getOccurredAt())
+                .occurredAt(message.getEffectiveOccurredAt())
                 .receivedAt(Instant.now())
-                .sourceService(message.getSourceService())
+                .sourceService(message.getEffectiveSourceService())
                 .sourceInstance(message.getSourceInstance())
                 .eventType(message.getEventType())
-                .outcome(message.getOutcome())
-                .severity(message.getSeverity() != null ? message.getSeverity() : "INFO")
-                .actorUserId(message.getActorUserId())
-                .actorRole(message.getActorRole())
+                .outcome(message.getEffectiveOutcome())
+                .severity(message.getEffectiveSeverity())
+                .actorUserId(message.getEffectiveActorUserId())
+                .actorRole(message.getEffectiveActorRole())
                 .actorEmail(message.getActorEmail())
                 .ip(message.getIp())
                 .userAgent(message.getUserAgent())
@@ -71,7 +75,7 @@ public class AuditEventStoreService {
                 .patientId(message.getPatientId())
                 .recordId(message.getRecordId())
                 .targetUserId(message.getTargetUserId())
-                .requestId(message.getRequestId())
+                .requestId(effectiveRequestId)
                 .traceId(message.getTraceId())
                 .spanId(message.getSpanId())
                 .detailsJson(message.getDetails())

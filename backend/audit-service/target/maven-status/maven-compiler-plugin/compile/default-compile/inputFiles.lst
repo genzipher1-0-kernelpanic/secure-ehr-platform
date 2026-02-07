@@ -20,10 +20,13 @@
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/security/JwtService.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/service/AuditEventStoreService.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/controller/AuditController.java
+/home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/kafka/AlertPublisher.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/repository/AlertDedupKeyRepository.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/service/AlertDetectionService.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/dto/AuditSeverity.java
+/home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/dto/AlertMessage.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/repository/AuditEventRepository.java
+/home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/kafka/KafkaProducerConfig.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/security/SecurityConfig.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/kafka/AuditEventConsumer.java
 /home/rootcat/Documents/development/secure-ehr-platform/backend/audit-service/src/main/java/com/ehrplatform/audit/dto/AuditEventTypes.java

@@ -26,6 +26,12 @@ public final class AuditEventTypes {
     public static final String PATIENT_ACCESSED = "PATIENT_ACCESSED";
     public static final String EXPORT_REQUESTED = "EXPORT_REQUESTED";
 
+    // Care-service events (patient-doctor assignments)
+    public static final String ASSIGNMENT_CREATED = "ASSIGNMENT_CREATED";
+    public static final String ASSIGNMENT_REMOVED = "ASSIGNMENT_REMOVED";
+    public static final String CONSENT_GRANTED = "CONSENT_GRANTED";
+    public static final String CONSENT_REVOKED = "CONSENT_REVOKED";
+
     // Admin events
     public static final String ROLE_CHANGED = "ROLE_CHANGED";
     public static final String PERMISSION_CHANGED = "PERMISSION_CHANGED";
