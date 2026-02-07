@@ -3,11 +3,13 @@ export const REFRESH_TOKEN_KEY = 'refreshToken';
 export const USER_KEY = 'user';
 
 export const ROLES = {
-  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  SYSTEM_ADMIN: 'SYSTEM_ADMIN',
+  RECEPTIONIST: 'RECEPTIONIST',
   DOCTOR: 'DOCTOR',
-  NURSE: 'NURSE',
-  PATIENT: 'PATIENT',
 } as const;
+
+export type UserRole = typeof ROLES[keyof typeof ROLES];
 
 export const API_ENDPOINTS = {
   AUTH: {
