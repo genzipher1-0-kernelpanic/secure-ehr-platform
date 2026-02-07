@@ -127,15 +127,15 @@ graph TB
     AUDIT -.->|Logs| LOGS
 
     %% Styling
-    classDef client fill:#e1f5ff,stroke:#01579b,stroke-width:2px
-    classDef edge fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef service fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    classDef auth fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
-    classDef db fill:#d1c4e9,stroke:#512da8,stroke-width:2px
-    classDef kafka fill:#ffccbc,stroke:#d84315,stroke-width:2px
-    classDef infra fill:#cfd8dc,stroke:#455a64,stroke-width:2px
-    classDef monitor fill:#fff59d,stroke:#f9a825,stroke-width:2px
-    classDef future fill:#f5f5f5,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 5 5
+    classDef client fill:#4A90E2,stroke:#2E5C8A,stroke-width:3px,color:#FFFFFF
+    classDef edge fill:#F39C12,stroke:#D68910,stroke-width:3px,color:#000000
+    classDef service fill:#27AE60,stroke:#1E8449,stroke-width:3px,color:#FFFFFF
+    classDef auth fill:#E74C3C,stroke:#C0392B,stroke-width:3px,color:#FFFFFF
+    classDef db fill:#8E44AD,stroke:#6C3483,stroke-width:3px,color:#FFFFFF
+    classDef kafka fill:#E67E22,stroke:#CA6F1E,stroke-width:3px,color:#FFFFFF
+    classDef infra fill:#34495E,stroke:#2C3E50,stroke-width:3px,color:#FFFFFF
+    classDef monitor fill:#F1C40F,stroke:#D4AC0D,stroke-width:3px,color:#000000
+    classDef future fill:#BDC3C7,stroke:#95A5A6,stroke-width:2px,stroke-dasharray: 5 5,color:#2C3E50
 
     class UI client
     class GW edge
