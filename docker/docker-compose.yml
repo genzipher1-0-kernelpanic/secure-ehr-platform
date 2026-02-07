@@ -49,7 +49,7 @@ services:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: identity_db
       MYSQL_USER: Admin
-      MYSQL_PASSWORD: "Admin@$20260702"
+      MYSQL_PASSWORD: "Admin@$$20260702"
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -61,7 +61,7 @@ services:
       - microservices-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -uroot -proot123 -e 'SELECT 1' >/dev/null 2>&1" ]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -74,7 +74,7 @@ services:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: patient_db
       MYSQL_USER: Admin
-      MYSQL_PASSWORD: "Admin@$20260702"
+      MYSQL_PASSWORD: "Admin@$$20260702"
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -86,7 +86,7 @@ services:
       - microservices-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -uroot -proot123 -e 'SELECT 1' >/dev/null 2>&1" ]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -99,7 +99,7 @@ services:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: ehr_db
       MYSQL_USER: Admin
-      MYSQL_PASSWORD: "Admin@$20260702"
+      MYSQL_PASSWORD: "Admin@$$20260702"
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -111,7 +111,7 @@ services:
       - microservices-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -uroot -proot123 -e 'SELECT 1' >/dev/null 2>&1" ]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -124,7 +124,7 @@ services:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: appointment_db
       MYSQL_USER: Admin
-      MYSQL_PASSWORD: "Admin@$20260702"
+      MYSQL_PASSWORD: "Admin@$$20260702"
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -136,7 +136,7 @@ services:
       - microservices-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1' $$MYSQL_DATABASE >/dev/null 2>&1" ]
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -uroot -proot123 -e 'SELECT 1' >/dev/null 2>&1" ]
       interval: 5s
       timeout: 5s
       retries: 30

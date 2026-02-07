@@ -54,12 +54,14 @@ public class JwtService {
     }
 
     private Claims parseClaims(String token) {
-        return Jwts.parser()
+        var builder = Jwts.parser()
                 .verifyWith(key)
                 .requireIssuer(issuer)
-                .requireAudience(audience)
-                .clockSkewSeconds(clockSkewSeconds)
-                .build()
+                .clockSkewSeconds(clockSkewSeconds);
+        if (audience != null && !audience.isBlank()) {
+            builder.requireAudience(audience);
+        }
+        return builder.build()
                 .parseSignedClaims(token)
                 .getPayload();
     }

@@ -7,11 +7,15 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     private final String issuer;
     private final String audience;
@@ -33,6 +37,8 @@ public class JwtService {
 
     @PostConstruct
     void init() {
+        log.info("JWT Config - issuer: '{}', audience: '{}', secret length: {}, clockSkew: {}",
+                issuer, audience, secret != null ? secret.length() : 0, clockSkewSeconds);
         if (secret == null || secret.length() < 32) {
             throw new IllegalStateException("jwt.secret must be at least 32 characters");
         }
@@ -41,15 +47,18 @@ public class JwtService {
 
     public Claims parseAndValidate(String token) {
         try {
-            return Jwts.parser()
+            var builder = Jwts.parser()
                     .verifyWith(key)
                     .requireIssuer(issuer)
-                    .requireAudience(audience)
-                    .clockSkewSeconds(clockSkewSeconds)
-                    .build()
+                    .clockSkewSeconds(clockSkewSeconds);
+            if (audience != null && !audience.isBlank()) {
+                builder.requireAudience(audience);
+            }
+            return builder.build()
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (JwtException | IllegalArgumentException ex) {
+            log.error("JWT validation failed: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
             return null;
         }
     }

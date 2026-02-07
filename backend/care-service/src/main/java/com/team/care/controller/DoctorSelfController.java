@@ -44,9 +44,9 @@ public class DoctorSelfController {
             throw new ForbiddenException("Not a doctor token");
         }
 
-        Object userIdClaim = claims.get("userid");
+        Object userIdClaim = claims.get("uid");
         if (userIdClaim == null) {
-            throw new UnauthorizedException("Missing userid claim");
+            throw new UnauthorizedException("Missing uid claim");
         }
 
         Long userId = parseUserId(userIdClaim);

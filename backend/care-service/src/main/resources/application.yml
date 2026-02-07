@@ -21,7 +21,7 @@ logging:
     org.springframework.web: INFO
 
 jwt:
-  issuer: "identity-service"
-  audience: "your-audience"
-  secret: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS"
+  issuer: "genzipher-identity"
+  audience: ""
+  secret: "Ro7m3HxWZlse6kmdCNsGJXZr570I0in3NEF5Fr8UzziDJqqMn1yL7eYpXlB"
   clockSkewSeconds: 30
