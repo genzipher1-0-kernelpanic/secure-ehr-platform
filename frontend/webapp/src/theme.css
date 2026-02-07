@@ -1,0 +1,21 @@
+:root {
+  /* Brand */
+  --color-primary: #1D4ED8;      /* deep blue */
+  --color-secondary: #0EA5A4;    /* teal */
+
+  /* Backgrounds */
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+
+  /* Text */
+  --color-text-primary: #0F172A;
+  --color-text-muted: #475569;
+
+  /* Borders */
+  --color-border: #E2E8F0;
+
+  /* Status */
+  --color-success: #16A34A;
+  --color-warning: #F59E0B;
+  --color-error: #DC2626;
+}
