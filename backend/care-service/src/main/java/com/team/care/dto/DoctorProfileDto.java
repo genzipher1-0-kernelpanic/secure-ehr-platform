@@ -1,5 +1,6 @@
 package com.team.care.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public class DoctorProfileDto {
@@ -13,6 +14,10 @@ public class DoctorProfileDto {
     private String specialization;
     private String licenseNumber;
     private String phone;
+
+    @Email
+    @NotBlank
+    private String email;
 
     public Long getId() {
         return id;
@@ -60,5 +65,13 @@ public class DoctorProfileDto {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

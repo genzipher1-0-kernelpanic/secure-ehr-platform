@@ -16,13 +16,16 @@ public class ConsentService {
     private final ConsentRepository consentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final EventPublisher eventPublisher;
 
     public ConsentService(ConsentRepository consentRepository,
                           PatientRepository patientRepository,
-                          DoctorRepository doctorRepository) {
+                          DoctorRepository doctorRepository,
+                          EventPublisher eventPublisher) {
         this.consentRepository = consentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -40,7 +43,12 @@ public class ConsentService {
         if (request.getValidTo() != null) {
             consent.setValidTo(request.getValidTo().toInstant());
         }
-        return consentRepository.save(consent).getId();
+        Long consentId = consentRepository.save(consent).getId();
+        eventPublisher.publishAudit("CONSENT_CREATED",
+                request.getPatientId(),
+                request.getGranteeUserId(),
+                "DOCTOR");
+        return consentId;
     }
 
     @Transactional
@@ -50,6 +58,10 @@ public class ConsentService {
         if (consent.getRevokedAt() == null) {
             consent.setRevokedAt(Instant.now());
             consentRepository.save(consent);
+            eventPublisher.publishAudit("CONSENT_REVOKED",
+                    consent.getPatientId(),
+                    consent.getGranteeUserId(),
+                    "DOCTOR");
         }
     }
 }

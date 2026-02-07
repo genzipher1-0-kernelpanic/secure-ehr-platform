@@ -17,13 +17,16 @@ public class AssignmentService {
     private final DoctorAssignmentRepository assignmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final EventPublisher eventPublisher;
 
     public AssignmentService(DoctorAssignmentRepository assignmentRepository,
                              PatientRepository patientRepository,
-                             DoctorRepository doctorRepository) {
+                             DoctorRepository doctorRepository,
+                             EventPublisher eventPublisher) {
         this.assignmentRepository = assignmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -46,7 +49,18 @@ public class AssignmentService {
         assignment.setPatientId(request.getPatientId());
         assignment.setDoctorUserId(request.getDoctorUserId());
         assignment.setReason(request.getReason());
-        return assignmentRepository.save(assignment).getId();
+        Long assignmentId = assignmentRepository.save(assignment).getId();
+
+        com.team.care.dto.PatientAssignEvent event = new com.team.care.dto.PatientAssignEvent();
+        event.setPatientId(request.getPatientId());
+        event.setDoctorId(request.getDoctorUserId());
+        patientRepository.findById(request.getPatientId())
+                .ifPresent(patient -> event.setPatientName(patient.getFullName()));
+        doctorRepository.findByUserId(request.getDoctorUserId())
+                .ifPresent(doctor -> event.setDoctorEmail(doctor.getEmail()));
+        eventPublisher.publishPatientAssign(event);
+        eventPublisher.publishAudit("ASSIGNMENT_CREATED", request.getPatientId(), request.getDoctorUserId(), "DOCTOR");
+        return assignmentId;
     }
 
     @Transactional
@@ -56,6 +70,10 @@ public class AssignmentService {
         if (assignment.getEndedAt() == null) {
             assignment.setEndedAt(Instant.now());
             assignmentRepository.save(assignment);
+            eventPublisher.publishAudit("ASSIGNMENT_ENDED",
+                    assignment.getPatientId(),
+                    assignment.getDoctorUserId(),
+                    "DOCTOR");
         }
     }
 }

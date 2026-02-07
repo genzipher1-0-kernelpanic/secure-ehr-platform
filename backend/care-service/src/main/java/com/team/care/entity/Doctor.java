@@ -39,6 +39,9 @@ public class Doctor {
     @Column(name = "phone", length = 30)
     private String phone;
 
+    @Column(name = "email", length = 200)
+    private String email;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -89,6 +92,14 @@ public class Doctor {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public Instant getCreatedAt() {
