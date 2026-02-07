@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Correlation-Id
+            exposedHeaders:
+              - X-Correlation-Id
+            allowCredentials: true
+
+      routes:
+        - id: user-service-public
+          uri: http://localhost:5001
+          predicates:
+            - Path=/api/auth/**
+
+        - id: user-service-secured
+          uri: http://localhost:5001
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: JwtAuth
+
+        - id: product-service
+          uri: http://localhost:5002
+          predicates:
+            - Path=/api/products/**
+
+        - id: cart-service
+          uri: http://localhost:5003
+          predicates:
+            - Path=/api/cart/**
+          filters:
+            - name: JwtAuth
+
+        - id: order-service
+          uri: http://localhost:5004
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - name: JwtAuth
+
+gateway:
+  jwt:
+    issuer: "your-issuer"
+    audience: "your-audience"
+    secret: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS"
+    clockSkewSeconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    reactor.netty.http.client: INFO
