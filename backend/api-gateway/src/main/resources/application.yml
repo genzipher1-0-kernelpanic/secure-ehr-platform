@@ -61,6 +61,13 @@ spring:
           filters:
             - name: JwtAuth
 
+        - id: audit-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/admin/audit/**
+          filters:
+            - name: JwtAuth
+
 gateway:
   jwt:
     issuer: "identity-service"
