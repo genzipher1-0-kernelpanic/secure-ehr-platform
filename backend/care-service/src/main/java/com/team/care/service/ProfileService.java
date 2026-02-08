@@ -108,6 +108,40 @@ public class ProfileService {
         return dto;
     }
 
+    public java.util.List<PatientProfileDto> listPatients() {
+        return patientRepository.findAll().stream()
+                .map(patient -> {
+                    PatientProfileDto dto = new PatientProfileDto();
+                    dto.setId(patient.getId());
+                    dto.setUserId(patient.getUserId());
+                    dto.setFullName(patient.getFullName());
+                    dto.setDob(patient.getDob());
+                    dto.setSex(patient.getSex());
+                    dto.setPhone(patient.getPhone());
+                    dto.setEmail(patient.getEmail());
+                    dto.setAddress(patient.getAddress());
+                    dto.setEmergencyContact(patient.getEmergencyContact());
+                    return dto;
+                })
+                .toList();
+    }
+
+    public java.util.List<DoctorProfileDto> listDoctors() {
+        return doctorRepository.findAll().stream()
+                .map(doctor -> {
+                    DoctorProfileDto dto = new DoctorProfileDto();
+                    dto.setId(doctor.getId());
+                    dto.setUserId(doctor.getUserId());
+                    dto.setFullName(doctor.getFullName());
+                    dto.setSpecialization(doctor.getSpecialization());
+                    dto.setLicenseNumber(doctor.getLicenseNumber());
+                    dto.setPhone(doctor.getPhone());
+                    dto.setEmail(doctor.getEmail());
+                    return dto;
+                })
+                .toList();
+    }
+
     public String getPatientEmail(Long patientId) {
         return patientRepository.findById(patientId)
                 .map(Patient::getEmail)

@@ -47,9 +47,9 @@ function AppRoutes() {
       <Route
         path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+          // <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
             <ReceptionistDashboard />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       />
       
@@ -57,9 +57,9 @@ function AppRoutes() {
       <Route
         path="/doctor/*"
         element={
-          // <ProtectedRoute allowedRoles={[ROLES.DOCTOR]}>
+          <ProtectedRoute allowedRoles={[ROLES.DOCTOR]}>
             <DoctorDashboard />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       />
       

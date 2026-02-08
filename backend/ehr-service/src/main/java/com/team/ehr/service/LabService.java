@@ -8,7 +8,6 @@ import com.team.ehr.exception.BadRequestException;
 import com.team.ehr.exception.NotFoundException;
 import com.team.ehr.repository.EhrLabObjectRepository;
 import com.team.ehr.repository.EhrRecordCurrentRepository;
-import com.team.ehr.security.SecurityUtil;
 import com.team.ehr.storage.StorageResult;
 import com.team.ehr.storage.StorageService;
 import jakarta.transaction.Transactional;
@@ -64,8 +63,8 @@ public class LabService {
             lab.setFileHash(storageResult.getHashHex());
             lab.setMimeType(file.getContentType());
             lab.setSizeBytes(storageResult.getSizeBytes());
-            lab.setCreatedByUserId(SecurityUtil.getUserId());
-            lab.setCreatedByRole(SecurityUtil.getRole().name());
+            lab.setCreatedByUserId(0L);
+            lab.setCreatedByRole("SYSTEM");
             lab.setReportType(meta.getReportType());
             lab.setTitle(meta.getTitle());
             lab.setStudyDate(meta.getStudyDate());

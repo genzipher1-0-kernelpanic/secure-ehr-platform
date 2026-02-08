@@ -65,8 +65,22 @@ export async function getPatient(patientId: string | number) {
   return response.data
 }
 
+export async function getPatients() {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/patients`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
 export async function getDoctor(doctorId: string | number) {
   const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors/${doctorId}`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export async function getDoctors() {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors`, {
     headers: authHeaders(),
   })
   return response.data

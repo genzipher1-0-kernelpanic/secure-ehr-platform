@@ -3,6 +3,7 @@ package com.genzipher.identityservice.Config;
 import com.genzipher.identityservice.Handler.InactivityFilter;
 import com.genzipher.identityservice.Handler.JwtAuthFilter;
 import com.genzipher.identityservice.Model.Role;
+import org.springframework.security.config.Customizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,7 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // swagger / openapi

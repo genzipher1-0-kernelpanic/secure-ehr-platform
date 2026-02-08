@@ -4,10 +4,11 @@ server:
 spring:
   application:
     name: ehr-service
+
   datasource:
-    url: ${EHR_DB_URL:jdbc:mysql://localhost:3309/ehr_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${EHR_DB_USERNAME:ehr_user}
-    password: ${EHR_DB_PASSWORD:ehr_pass}
+    url: ${EHR_DB_URL:jdbc:mysql://localhost:3306/ehr_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${EHR_DB_USERNAME:root}
+    password: ${EHR_DB_PASSWORD:mapa}
   jpa:
     hibernate:
       ddl-auto: none

@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
 import { httpClient } from '@/lib/http/client'
 import { API_ENDPOINTS } from '@/lib/config/constants'
-import { createProfile, createAssignment, getPatient, getDoctor } from '@/features/care/api/careApi'
+import { createProfile, createAssignment, getDoctors, getPatients } from '@/features/care/api/careApi'
+import { createEhrRecord, uploadLabReport } from '@/features/ehr/api/ehrApi'
 
 const navItems = [
   {
@@ -46,17 +47,8 @@ const navItems = [
   },
 ]
 
-// Pre-seeded users from DB (no list API available)
-const initialPatients = [
-  { id: '3', fullName: 'Patient 1', email: 'patient1@genzipher.com', dateOfBirth: '', phone: '', nic: '', bloodType: '', assignedDoctor: '', lastVisit: '' },
-]
-
-const initialDoctors = [
-  { id: '2', fullName: 'Doctor 1', email: 'doctor1@genzipher.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
-  { id: '4', fullName: 'Doctor 2', email: 'doctor2@genzipher.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
-  { id: '8', fullName: 'Doctor 3', email: 'doctor@gmail.com', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
-  { id: '9', fullName: 'Doctor 4', email: 'doctor@gmail.cdsasaf', phone: '', specialization: '', licenceNumber: '', nic: '', status: 'Available' },
-]
+const initialPatients = []
+const initialDoctors = []
 
 const patientColumns = [
   { key: 'fullName', label: 'Patient Name' },
@@ -99,9 +91,12 @@ function calculateAge(dateOfBirth) {
 export default function ReceptionistDashboard() {
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false)
   const [isAddDoctorModalOpen, setIsAddDoctorModalOpen] = useState(false)
+  const [isAddRecordModalOpen, setIsAddRecordModalOpen] = useState(false)
   const [isViewPatientModalOpen, setIsViewPatientModalOpen] = useState(false)
   const [patients, setPatients] = useState(initialPatients)
   const [doctors, setDoctors] = useState(initialDoctors)
+  const [isLoadingDirectory, setIsLoadingDirectory] = useState(true)
+  const [directoryError, setDirectoryError] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [newPatient, setNewPatient] = useState({
@@ -127,10 +122,31 @@ export default function ReceptionistDashboard() {
     licenceNumber: '',
     nic: '',
   })
+  const [recordForm, setRecordForm] = useState({
+    patientId: '',
+    recordType: 'CLINICAL',
+    conditions: '',
+    allergies: '',
+    clinicalNotes: '',
+    vitalsBp: '',
+    vitalsHr: '',
+    vitalsTemp: '',
+    medications: '',
+    procedures: '',
+    carePlans: '',
+    labReportType: 'PDF',
+    labTitle: '',
+    labStudyDate: '',
+    labRelatedCategory: '',
+    labRelatedVersion: '',
+    labFile: null,
+  })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState(null)
+  const [recordSubmitError, setRecordSubmitError] = useState('')
+  const [recordSuccessMessage, setRecordSuccessMessage] = useState(null)
 
   const patientAge = useMemo(() => calculateAge(newPatient.dateOfBirth), [newPatient.dateOfBirth])
   const isNicRequired = patientAge > 16
@@ -285,6 +301,163 @@ export default function ReceptionistDashboard() {
     setIsViewPatientModalOpen(true)
   }
 
+  useEffect(() => {
+    let active = true
+
+    const loadDirectory = async () => {
+      setIsLoadingDirectory(true)
+      setDirectoryError('')
+      try {
+        const [patientList, doctorList] = await Promise.all([getPatients(), getDoctors()])
+        if (!active) return
+
+        const mappedPatients = patientList.map((patient) => ({
+          id: String(patient.id),
+          fullName: patient.fullName,
+          email: patient.email || '',
+          dateOfBirth: patient.dob || '',
+          phone: patient.phone || '',
+          nic: '',
+          bloodType: '',
+          assignedDoctor: '',
+          lastVisit: '',
+        }))
+
+        const mappedDoctors = doctorList.map((doctor) => ({
+          id: String(doctor.id),
+          userId: doctor.userId,
+          fullName: doctor.fullName,
+          email: doctor.email || '',
+          phone: doctor.phone || '',
+          specialization: doctor.specialization || '',
+          licenceNumber: doctor.licenseNumber || '',
+          nic: '',
+          status: 'Available',
+        }))
+
+        setPatients(mappedPatients)
+        setDoctors(mappedDoctors)
+      } catch (error) {
+        if (!active) return
+        console.error('Failed to load patients/doctors:', error)
+        setDirectoryError('Failed to load patients and doctors from care service.')
+      } finally {
+        if (active) {
+          setIsLoadingDirectory(false)
+        }
+      }
+    }
+
+    loadDirectory()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const parseList = (value) =>
+    value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item)
+
+  const handleAddRecord = async (e) => {
+    e.preventDefault()
+    setRecordSubmitError('')
+    setRecordSuccessMessage(null)
+
+    if (!recordForm.patientId) {
+      setRecordSubmitError('Please select a patient.')
+      return
+    }
+
+    try {
+      if (recordForm.recordType === 'LAB') {
+        if (!recordForm.labFile) {
+          setRecordSubmitError('Please attach a lab report file.')
+          return
+        }
+        const allowedTypes = ['application/pdf', 'image/png']
+        if (!allowedTypes.includes(recordForm.labFile.type)) {
+          setRecordSubmitError('Only PDF or PNG files are supported.')
+          return
+        }
+        if (!recordForm.labTitle.trim()) {
+          setRecordSubmitError('Lab report title is required.')
+          return
+        }
+
+        const meta = {
+          reportType: recordForm.labReportType,
+          title: recordForm.labTitle,
+          studyDate: recordForm.labStudyDate || undefined,
+          relatedCategory: recordForm.labRelatedCategory || undefined,
+          relatedVersion: recordForm.labRelatedVersion
+            ? parseInt(recordForm.labRelatedVersion)
+            : undefined,
+        }
+        await uploadLabReport(recordForm.patientId, recordForm.labFile, meta)
+      } else {
+        const data = {}
+        if (recordForm.recordType === 'CLINICAL') {
+          if (recordForm.conditions.trim()) data.conditions = parseList(recordForm.conditions)
+          if (recordForm.allergies.trim()) data.allergies = parseList(recordForm.allergies)
+          if (recordForm.clinicalNotes.trim()) data.clinicalNotes = recordForm.clinicalNotes
+          const vitals = {}
+          if (recordForm.vitalsBp.trim()) vitals.bp = recordForm.vitalsBp
+          if (recordForm.vitalsHr.trim()) vitals.hr = Number(recordForm.vitalsHr)
+          if (recordForm.vitalsTemp.trim()) vitals.tempC = Number(recordForm.vitalsTemp)
+          if (Object.keys(vitals).length > 0) data.vitals = vitals
+        } else if (recordForm.recordType === 'TREATMENTS') {
+          if (recordForm.medications.trim()) data.medications = parseList(recordForm.medications)
+          if (recordForm.procedures.trim()) data.procedures = parseList(recordForm.procedures)
+          if (recordForm.carePlans.trim()) data.carePlans = parseList(recordForm.carePlans)
+        }
+
+        if (Object.keys(data).length === 0) {
+          setRecordSubmitError('Please add at least one field before submitting.')
+          return
+        }
+        await createEhrRecord(recordForm.patientId, recordForm.recordType, data)
+      }
+
+      setRecordSuccessMessage('Record added successfully.')
+      setRecordForm({
+        patientId: '',
+        recordType: 'CLINICAL',
+        conditions: '',
+        allergies: '',
+        clinicalNotes: '',
+        vitalsBp: '',
+        vitalsHr: '',
+        vitalsTemp: '',
+        medications: '',
+        procedures: '',
+        carePlans: '',
+        labReportType: 'PDF',
+        labTitle: '',
+        labStudyDate: '',
+        labRelatedCategory: '',
+        labRelatedVersion: '',
+        labFile: null,
+      })
+    } catch (error) {
+      console.error('Failed to add EHR record:', error)
+      setRecordSubmitError(error.message || 'Failed to add EHR record.')
+    }
+  }
+
+  const openRecordModal = () => {
+    setRecordSubmitError('')
+    setRecordSuccessMessage(null)
+    setIsAddRecordModalOpen(true)
+  }
+
+  const closeRecordModal = () => {
+    setIsAddRecordModalOpen(false)
+    setRecordSubmitError('')
+    setRecordSuccessMessage(null)
+  }
+
   return (
     <DashboardLayout navItems={navItems} title="Admin">
       <div className="space-y-6">
@@ -303,6 +476,15 @@ export default function ReceptionistDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Register Patient
+            </button>
+            <button
+              onClick={openRecordModal}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z" />
+              </svg>
+              Add Patient Record
             </button>
             <button
               onClick={() => setIsAddDoctorModalOpen(true)}
@@ -376,6 +558,16 @@ export default function ReceptionistDashboard() {
             }
           />
         </div>
+        {directoryError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+            {directoryError}
+          </div>
+        )}
+        {isLoadingDirectory && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600">
+            Loading patients and doctors...
+          </div>
+        )}
 
         {/* Doctor Summary */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -732,6 +924,249 @@ export default function ReceptionistDashboard() {
               <button type="button" onClick={() => setIsAddDoctorModalOpen(false)} className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
               <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {isSubmitting ? 'Registering...' : 'Register Doctor'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Add Patient Record Modal */}
+        <Modal
+          isOpen={isAddRecordModalOpen}
+          onClose={closeRecordModal}
+          title="Add Patient Record"
+          size="lg"
+        >
+          <form onSubmit={handleAddRecord} className="space-y-4">
+            {recordSubmitError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {recordSubmitError}
+              </div>
+            )}
+            {recordSuccessMessage && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                {recordSuccessMessage}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Patient *</label>
+                <select
+                  required
+                  value={recordForm.patientId}
+                  onChange={(e) => setRecordForm({ ...recordForm, patientId: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Select Patient</option>
+                  {patients.map((patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.fullName} (ID: {patient.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Record Type *</label>
+                <select
+                  value={recordForm.recordType}
+                  onChange={(e) => setRecordForm({ ...recordForm, recordType: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="CLINICAL">Clinical</option>
+                  <option value="TREATMENTS">Treatments</option>
+                  <option value="LAB">Lab Report</option>
+                </select>
+              </div>
+            </div>
+
+            {recordForm.recordType === 'CLINICAL' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Conditions</label>
+                  <input
+                    type="text"
+                    value={recordForm.conditions}
+                    onChange={(e) => setRecordForm({ ...recordForm, conditions: e.target.value })}
+                    placeholder="e.g., Hypertension, Diabetes"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Allergies</label>
+                  <input
+                    type="text"
+                    value={recordForm.allergies}
+                    onChange={(e) => setRecordForm({ ...recordForm, allergies: e.target.value })}
+                    placeholder="e.g., Penicillin"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">BP</label>
+                    <input
+                      type="text"
+                      value={recordForm.vitalsBp}
+                      onChange={(e) => setRecordForm({ ...recordForm, vitalsBp: e.target.value })}
+                      placeholder="120/80"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">HR</label>
+                    <input
+                      type="number"
+                      value={recordForm.vitalsHr}
+                      onChange={(e) => setRecordForm({ ...recordForm, vitalsHr: e.target.value })}
+                      placeholder="72"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Temp (C)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={recordForm.vitalsTemp}
+                      onChange={(e) => setRecordForm({ ...recordForm, vitalsTemp: e.target.value })}
+                      placeholder="36.6"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Clinical Notes</label>
+                  <textarea
+                    value={recordForm.clinicalNotes}
+                    onChange={(e) => setRecordForm({ ...recordForm, clinicalNotes: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </>
+            )}
+
+            {recordForm.recordType === 'TREATMENTS' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Medications</label>
+                  <input
+                    type="text"
+                    value={recordForm.medications}
+                    onChange={(e) => setRecordForm({ ...recordForm, medications: e.target.value })}
+                    placeholder="e.g., Lisinopril 10mg, Aspirin 81mg"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Procedures</label>
+                  <input
+                    type="text"
+                    value={recordForm.procedures}
+                    onChange={(e) => setRecordForm({ ...recordForm, procedures: e.target.value })}
+                    placeholder="e.g., ECG, Blood test"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Care Plans</label>
+                  <input
+                    type="text"
+                    value={recordForm.carePlans}
+                    onChange={(e) => setRecordForm({ ...recordForm, carePlans: e.target.value })}
+                    placeholder="e.g., Weekly blood pressure checks"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </>
+            )}
+
+            {recordForm.recordType === 'LAB' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Report Type *</label>
+                    <select
+                      value={recordForm.labReportType}
+                      onChange={(e) => setRecordForm({ ...recordForm, labReportType: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="PDF">PDF</option>
+                      <option value="XRAY">X-Ray</option>
+                      <option value="BLOOD">Blood</option>
+                      <option value="MRI">MRI</option>
+                      <option value="ULTRASOUND">Ultrasound</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+                    <input
+                      type="text"
+                      value={recordForm.labTitle}
+                      onChange={(e) => setRecordForm({ ...recordForm, labTitle: e.target.value })}
+                      placeholder="e.g., Chest X-Ray"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Study Date</label>
+                    <input
+                      type="date"
+                      value={recordForm.labStudyDate}
+                      onChange={(e) => setRecordForm({ ...recordForm, labStudyDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Related Category</label>
+                    <select
+                      value={recordForm.labRelatedCategory}
+                      onChange={(e) => setRecordForm({ ...recordForm, labRelatedCategory: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">None</option>
+                      <option value="CLINICAL">Clinical</option>
+                      <option value="TREATMENTS">Treatments</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Related Version</label>
+                  <input
+                    type="number"
+                    value={recordForm.labRelatedVersion}
+                    onChange={(e) => setRecordForm({ ...recordForm, labRelatedVersion: e.target.value })}
+                    placeholder="Version number"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Lab Report File (PDF/PNG) *</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.png"
+                    onChange={(e) => setRecordForm({ ...recordForm, labFile: e.target.files?.[0] || null })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={closeRecordModal}
+                className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Save Record
               </button>
             </div>
           </form>

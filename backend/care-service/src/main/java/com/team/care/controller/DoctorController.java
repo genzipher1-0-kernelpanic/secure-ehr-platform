@@ -28,6 +28,11 @@ public class DoctorController {
         return profileService.getDoctor(doctorId);
     }
 
+    @GetMapping
+    public List<DoctorProfileDto> listDoctors() {
+        return profileService.listDoctors();
+    }
+
     @GetMapping("/{doctorUserId}/patients")
     public List<PatientProfileDto> getAssignedPatients(@PathVariable Long doctorUserId) {
         return doctorPatientService.listAssignedPatients(doctorUserId);
