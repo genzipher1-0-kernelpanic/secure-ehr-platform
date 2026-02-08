@@ -44,3 +44,23 @@ export async function uploadLabReport(
   }
   return response.json()
 }
+
+export async function getEhrRecord(patientId: string | number, category: string) {
+  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}?category=${category}`, {
+    headers: { ...authHeaders() },
+  })
+  if (!response.ok) {
+    throw new Error(await response.text())
+  }
+  return response.json()
+}
+
+export async function getLabReports(patientId: string | number) {
+  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}/labs`, {
+    headers: { ...authHeaders() },
+  })
+  if (!response.ok) {
+    throw new Error(await response.text())
+  }
+  return response.json()
+}

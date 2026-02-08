@@ -4,6 +4,7 @@ import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
 import { getDoctorMe, getDoctorPatients } from '@/features/care/api/careApi'
+import { getEhrRecord, getLabReports } from '@/features/ehr/api/ehrApi'
 
 const navItems = [
   {
@@ -70,6 +71,7 @@ export default function DoctorDashboard() {
   const [isReferPatientModalOpen, setIsReferPatientModalOpen] = useState(false)
   const [isAddNotesModalOpen, setIsAddNotesModalOpen] = useState(false)
   const [isEditPatientModalOpen, setIsEditPatientModalOpen] = useState(false)
+  const [isFetchRecordModalOpen, setIsFetchRecordModalOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [editPatientData, setEditPatientData] = useState(null)
   const [referralData, setReferralData] = useState({
@@ -79,6 +81,14 @@ export default function DoctorDashboard() {
     notes: '',
   })
   const [newNotes, setNewNotes] = useState('')
+  const [recordQuery, setRecordQuery] = useState({
+    patientId: '',
+    recordType: 'CLINICAL',
+  })
+  const [recordResponse, setRecordResponse] = useState('')
+  const [labResults, setLabResults] = useState([])
+  const [recordError, setRecordError] = useState('')
+  const [isFetchingRecord, setIsFetchingRecord] = useState(false)
 
   useEffect(() => {
     let isActive = true
@@ -202,6 +212,40 @@ export default function DoctorDashboard() {
     setIsAddNotesModalOpen(false)
   }
 
+  const openFetchRecordModal = () => {
+    setRecordQuery({ patientId: '', recordType: 'CLINICAL' })
+    setRecordResponse('')
+    setLabResults([])
+    setRecordError('')
+    setIsFetchRecordModalOpen(true)
+  }
+
+  const handleFetchRecord = async (e) => {
+    e.preventDefault()
+    if (!recordQuery.patientId) {
+      setRecordError('Please select a patient.')
+      return
+    }
+    setIsFetchingRecord(true)
+    setRecordError('')
+    setRecordResponse('')
+    setLabResults([])
+    try {
+      if (recordQuery.recordType === 'LAB') {
+        const labs = await getLabReports(recordQuery.patientId)
+        setLabResults(Array.isArray(labs) ? labs : [])
+      } else {
+        const record = await getEhrRecord(recordQuery.patientId, recordQuery.recordType)
+        setRecordResponse(JSON.stringify(record, null, 2))
+      }
+    } catch (error) {
+      console.error('Failed to fetch EHR record:', error)
+      setRecordError(error.message || 'Failed to fetch EHR record.')
+    } finally {
+      setIsFetchingRecord(false)
+    }
+  }
+
   return (
     <DashboardLayout navItems={navItems} title="Doctor">
       <div className="space-y-6">
@@ -209,6 +253,15 @@ export default function DoctorDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Doctor Dashboard</h1>
           <p className="text-slate-500 mt-1">Welcome back! Here are your patients and appointments.</p>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={openFetchRecordModal}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Get Patient Data
+          </button>
         </div>
 
         {/* Stats */}
@@ -695,6 +748,104 @@ export default function DoctorDashboard() {
               </div>
             </form>
           )}
+        </Modal>
+
+        {/* Fetch Patient Record Modal */}
+        <Modal
+          isOpen={isFetchRecordModalOpen}
+          onClose={() => setIsFetchRecordModalOpen(false)}
+          title="Get Patient Data"
+          size="lg"
+        >
+          <form onSubmit={handleFetchRecord} className="space-y-4">
+            {recordError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {recordError}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Patient *</label>
+                <select
+                  required
+                  value={recordQuery.patientId}
+                  onChange={(e) => setRecordQuery({ ...recordQuery, patientId: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Select Patient</option>
+                  {patients.map((patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.fullName} (ID: {patient.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Record Type *</label>
+                <select
+                  value={recordQuery.recordType}
+                  onChange={(e) => setRecordQuery({ ...recordQuery, recordType: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="CLINICAL">Clinical</option>
+                  <option value="TREATMENTS">Treatments</option>
+                  <option value="LAB">Lab Reports</option>
+                </select>
+              </div>
+            </div>
+
+            {recordResponse && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono">{recordResponse}</pre>
+              </div>
+            )}
+            {recordQuery.recordType === 'LAB' && labResults.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <div className="grid grid-cols-5 gap-2 px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-50">
+                  <span>Title</span>
+                  <span>Report Type</span>
+                  <span>Study Date</span>
+                  <span>Related Version</span>
+                  <span>Download</span>
+                </div>
+                <div className="divide-y divide-slate-200">
+                  {labResults.map((lab) => (
+                    <div key={lab.objectId} className="grid grid-cols-5 gap-2 px-4 py-2 text-sm text-slate-700">
+                      <span>{lab.title || 'Untitled'}</span>
+                      <span>{lab.reportType || 'N/A'}</span>
+                      <span>{lab.studyDate || 'N/A'}</span>
+                      <span>{lab.relatedVersion ?? 'N/A'}</span>
+                      <a
+                        href={`http://localhost:5006/api/ehr/patients/${recordQuery.patientId}/labs/${lab.objectId}/download`}
+                        className="text-purple-600 hover:text-purple-800"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsFetchRecordModalOpen(false)}
+                className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                disabled={isFetchingRecord}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {isFetchingRecord ? 'Fetching...' : 'Fetch Data'}
+              </button>
+            </div>
+          </form>
         </Modal>
       </div>
     </DashboardLayout>
