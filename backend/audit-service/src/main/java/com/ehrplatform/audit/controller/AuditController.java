@@ -2,6 +2,7 @@ package com.ehrplatform.audit.controller;
 
 import com.ehrplatform.audit.dto.*;
 import com.ehrplatform.audit.entity.AuditEvent;
+import com.ehrplatform.audit.repository.AuditEventRepository;
 import com.ehrplatform.audit.service.AuditEventStoreService;
 import com.ehrplatform.audit.service.IntegrityVerificationService;
 import jakarta.validation.Valid;
@@ -14,6 +15,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * REST controller for admin audit operations.
@@ -28,6 +31,7 @@ public class AuditController {
 
     private final AuditEventStoreService auditEventStoreService;
     private final IntegrityVerificationService integrityVerificationService;
+    private final AuditEventRepository auditEventRepository;
 
     /**
      * Query audit events with filters and pagination.
@@ -146,5 +150,20 @@ public class AuditController {
                 "ACCESS_DENIED"
         };
         return ResponseEntity.ok(eventTypes);
+    }
+
+    /**
+     * Find audit events by Zipkin trace ID.
+     * Allows correlating Zipkin traces with audit log entries.
+     *
+     * GET /admin/audit/trace/{traceId}
+     */
+    @GetMapping("/trace/{traceId}")
+    public ResponseEntity<List<AuditEventResponse>> getEventsByTraceId(@PathVariable String traceId) {
+        List<AuditEvent> events = auditEventRepository.findByTraceId(traceId);
+        List<AuditEventResponse> response = events.stream()
+                .map(auditEventStoreService::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 }

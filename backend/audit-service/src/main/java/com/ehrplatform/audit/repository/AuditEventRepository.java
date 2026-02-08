@@ -130,4 +130,9 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long>, J
      * Find by event type with pagination
      */
     Page<AuditEvent> findByEventType(String eventType, Pageable pageable);
+
+    /**
+     * Find by trace ID (for Zipkin correlation)
+     */
+    List<AuditEvent> findByTraceId(String traceId);
 }
