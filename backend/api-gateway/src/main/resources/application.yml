@@ -24,12 +24,12 @@ spring:
 
       routes:
         - id: user-service-public
-          uri: http://localhost:5001
+          uri: http://localhost:8050
           predicates:
             - Path=/api/auth/**
 
         - id: user-service-secured
-          uri: http://localhost:5001
+          uri: http://localhost:8050
           predicates:
             - Path=/api/users/**
           filters:

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { AUTH_TOKEN_KEY } from '../../../lib/config/constants'
 
 const EHR_BASE = 'http://localhost:5006'
@@ -8,15 +9,12 @@ function authHeaders() {
 }
 
 export async function createEhrRecord(patientId: string | number, category: string, data: unknown) {
-  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ category, data }),
-  })
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-  return response.json()
+  const response = await axios.post(
+    `${EHR_BASE}/api/ehr/patients/${patientId}`,
+    { category, data },
+    { headers: { 'Content-Type': 'application/json', ...authHeaders() } }
+  )
+  return response.data
 }
 
 export async function uploadLabReport(
@@ -34,33 +32,23 @@ export async function uploadLabReport(
   formData.append('file', file)
   formData.append('meta', JSON.stringify(meta))
 
-  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}/labs`, {
-    method: 'POST',
+  const response = await axios.post(`${EHR_BASE}/api/ehr/patients/${patientId}/labs`, formData, {
     headers: { ...authHeaders() },
-    body: formData,
   })
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-  return response.json()
+  return response.data
 }
 
 export async function getEhrRecord(patientId: string | number, category: string) {
-  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}?category=${category}`, {
+  const response = await axios.get(`${EHR_BASE}/api/ehr/patients/${patientId}`, {
+    params: { category },
     headers: { ...authHeaders() },
   })
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-  return response.json()
+  return response.data
 }
 
 export async function getLabReports(patientId: string | number) {
-  const response = await fetch(`${EHR_BASE}/api/ehr/patients/${patientId}/labs`, {
+  const response = await axios.get(`${EHR_BASE}/api/ehr/patients/${patientId}/labs`, {
     headers: { ...authHeaders() },
   })
-  if (!response.ok) {
-    throw new Error(await response.text())
-  }
-  return response.json()
+  return response.data
 }
