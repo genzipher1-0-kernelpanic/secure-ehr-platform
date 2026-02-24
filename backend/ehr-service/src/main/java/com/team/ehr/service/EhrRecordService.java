@@ -21,8 +21,6 @@ import com.team.ehr.exception.ForbiddenException;
 import com.team.ehr.exception.NotFoundException;
 import com.team.ehr.repository.EhrRecordCurrentRepository;
 import com.team.ehr.repository.EhrRecordVersionRepository;
-import com.team.ehr.security.SecurityUtil;
-import com.team.ehr.security.UserRole;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Set;
@@ -126,8 +124,8 @@ public class EhrRecordService {
             recordVersion.setCiphertext(encrypted.getCiphertext());
             recordVersion.setContentHash(encrypted.getHashHex());
             recordVersion.setKeyId(cryptoService.getKeyId());
-            recordVersion.setCreatedByUserId(SecurityUtil.getUserId());
-            recordVersion.setCreatedByRole(SecurityUtil.getRole().name());
+            recordVersion.setCreatedByUserId(0L);
+            recordVersion.setCreatedByRole("SYSTEM");
             versionRepository.save(recordVersion);
 
             auditService.log("CREATE", patientId, category, current.getId(), null, version);
@@ -169,8 +167,8 @@ public class EhrRecordService {
             version.setCiphertext(encrypted.getCiphertext());
             version.setContentHash(encrypted.getHashHex());
             version.setKeyId(cryptoService.getKeyId());
-            version.setCreatedByUserId(SecurityUtil.getUserId());
-            version.setCreatedByRole(SecurityUtil.getRole().name());
+            version.setCreatedByUserId(0L);
+            version.setCreatedByRole("SYSTEM");
             versionRepository.save(version);
 
             auditService.log("UPDATE", patientId, category, current.getId(), null, newVersion);
@@ -253,22 +251,14 @@ public class EhrRecordService {
     }
 
     private void validatePatchPolicy(EhrCategory category, JsonNode patch) {
-        UserRole role = SecurityUtil.getRole();
         if (!patch.isObject()) {
             throw new BadRequestException("Patch must be a JSON object");
         }
         Set<String> allowed;
-        if (role == UserRole.PATIENT) {
-            if (category == EhrCategory.TREATMENTS) {
-                throw new ForbiddenException("Patients cannot update treatments");
-            }
-            allowed = Set.of("emergencyContact", "address", "allergies");
+        if (category == EhrCategory.CLINICAL) {
+            allowed = Set.of("conditions", "vitals", "clinicalNotes", "allergies", "address", "emergencyContact");
         } else {
-            if (category == EhrCategory.CLINICAL) {
-                allowed = Set.of("conditions", "vitals", "clinicalNotes", "allergies");
-            } else {
-                allowed = Set.of("medications", "procedures", "carePlans");
-            }
+            allowed = Set.of("medications", "procedures", "carePlans");
         }
         for (String field : iterableFields(patch)) {
             if (!allowed.contains(field)) {

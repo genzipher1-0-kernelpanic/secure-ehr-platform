@@ -1,6 +1,5 @@
 package com.team.ehr.config;
 
-import com.team.ehr.security.SecurityUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,18 +17,25 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         long start = System.currentTimeMillis();
-        filterChain.doFilter(request, response);
-        String method = request.getMethod();
-        String path = request.getRequestURI();
-        int status = response.getStatus();
-        long durationMs = System.currentTimeMillis() - start;
-        String userId = "unknown";
+        Exception failure = null;
         try {
-            userId = String.valueOf(SecurityUtil.getUserId());
+            filterChain.doFilter(request, response);
         } catch (Exception ex) {
-            // ignore missing auth
+            failure = ex;
+            throw ex;
+        } finally {
+            String method = request.getMethod();
+            String path = request.getRequestURI();
+            int status = response.getStatus();
+            long durationMs = System.currentTimeMillis() - start;
+            String userId = "unknown";
+            if (failure != null || status >= 400) {
+                log.warn("request method={} path={} status={} durationMs={} userId={} body=[MASKED]",
+                        method, path, status, durationMs, userId, failure);
+            } else {
+                log.info("request method={} path={} status={} durationMs={} userId={} body=[MASKED]",
+                        method, path, status, durationMs, userId);
+            }
         }
-        log.info("request method={} path={} status={} durationMs={} userId={} body=[MASKED]",
-                method, path, status, durationMs, userId);
     }
 }

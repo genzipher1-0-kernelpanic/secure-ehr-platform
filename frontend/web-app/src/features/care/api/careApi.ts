@@ -16,6 +16,7 @@ interface PatientProfile {
   dob: string
   sex: string
   phone: string
+  email: string
   address?: string
   emergencyContact?: string
 }
@@ -25,6 +26,7 @@ interface DoctorProfile {
   specialization: string
   licenseNumber: string
   phone: string
+  email: string
 }
 
 interface CreateProfileRequest {
@@ -65,8 +67,29 @@ export async function getPatient(patientId: string | number) {
   return response.data
 }
 
+export async function getPatients() {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/patients`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
 export async function getDoctor(doctorId: string | number) {
   const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors/${doctorId}`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export async function getDoctorByUserId(userId: string | number) {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors/user/${userId}`, {
+    headers: authHeaders(),
+  })
+  return response.data
+}
+
+export async function getDoctors() {
+  const response = await axios.get(`${GATEWAY_BASE}/api/care/doctors`, {
     headers: authHeaders(),
   })
   return response.data

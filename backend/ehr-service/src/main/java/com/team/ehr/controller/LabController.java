@@ -16,10 +16,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 @RestController
 @RequestMapping("/api/ehr/patients/{patientId}/labs")
 public class LabController {
+
+    private static final Logger log = LoggerFactory.getLogger(LabController.class);
 
     private final LabService labService;
     private final StorageService storageService;
@@ -52,35 +55,36 @@ public class LabController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated()")
     public LabUploadResponse upload(
             @PathVariable Long patientId,
             @RequestPart("file") MultipartFile file,
             @RequestPart("meta") String metaJson
     ) {
+        log.info("Lab upload patientId={} filename={} size={}",
+                patientId, file.getOriginalFilename(), file.getSize());
         LabMetaRequest meta = parseMeta(metaJson);
         return labService.upload(patientId, file, meta);
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     public List<LabObjectDto> list(@PathVariable Long patientId) {
+        log.info("Lab list patientId={}", patientId);
         return labService.list(patientId);
     }
 
     @GetMapping("/{objectId}/download")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<StreamingResponseBody> download(
             @PathVariable Long patientId,
             @PathVariable String objectId
     ) {
+        log.info("Lab download patientId={} objectId={}", patientId, objectId);
         EhrLabObject lab = labService.getLabObjectForDownload(patientId, objectId);
         StreamingResponseBody body = outputStream -> streamDecrypted(lab, outputStream);
-        String filename = sanitizeFilename(lab.getTitle());
+        String filename = sanitizeFilename(lab.getTitle(), lab.getMimeType());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(lab.getMimeType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
                 .body(body);
     }
 
@@ -103,17 +107,27 @@ public class LabController {
         }
     }
 
-    private String sanitizeFilename(String title) {
+    private String sanitizeFilename(String title, String mimeType) {
         if (title == null || title.isBlank()) {
-            return "lab-report.bin";
+            return "lab-report" + extensionForMime(mimeType);
         }
         String safe = title.replaceAll("[^a-zA-Z0-9._-]", "_");
         if (safe.length() > 120) {
             safe = safe.substring(0, 120);
         }
         if (!safe.contains(".")) {
-            safe = safe + ".bin";
+            safe = safe + extensionForMime(mimeType);
         }
         return safe;
+    }
+
+    private String extensionForMime(String mimeType) {
+        if (MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(mimeType)) {
+            return ".pdf";
+        }
+        if (MediaType.IMAGE_PNG_VALUE.equalsIgnoreCase(mimeType)) {
+            return ".png";
+        }
+        return ".bin";
     }
 }

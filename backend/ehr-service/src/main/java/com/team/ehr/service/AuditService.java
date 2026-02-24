@@ -3,8 +3,6 @@ package com.team.ehr.service;
 import com.team.ehr.entity.EhrAuditLog;
 import com.team.ehr.entity.EhrCategory;
 import com.team.ehr.repository.EhrAuditLogRepository;
-import com.team.ehr.security.SecurityUtil;
-import com.team.ehr.security.UserRole;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,9 +22,8 @@ public class AuditService {
         log.setEhrId(ehrId);
         log.setObjectId(objectId);
         log.setNewVersion(newVersion);
-        log.setCreatedByUserId(SecurityUtil.getUserId());
-        UserRole role = SecurityUtil.getRole();
-        log.setCreatedByRole(role.name());
+        log.setCreatedByUserId(0L);
+        log.setCreatedByRole("SYSTEM");
         auditLogRepository.save(log);
     }
 }

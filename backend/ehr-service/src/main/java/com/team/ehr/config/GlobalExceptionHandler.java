@@ -6,7 +6,6 @@ import com.team.ehr.exception.ConflictException;
 import com.team.ehr.exception.ForbiddenException;
 import com.team.ehr.exception.NotFoundException;
 import com.team.ehr.exception.TooManyRequestsException;
-import com.team.ehr.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,7 +22,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        log.warn("Validation failed: {}", ex.getMessage());
+        log.warn("Validation failed", ex);
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
@@ -33,43 +32,37 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleInvalidJson(HttpMessageNotReadableException ex) {
-        log.warn("Malformed request body: {}", ex.getMessage());
+        log.warn("Malformed request body", ex);
         return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Malformed request body");
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
-        log.warn("Bad request: {}", ex.getMessage());
+        log.warn("Bad request", ex);
         return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
-    }
-
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
-        log.warn("Unauthorized: {}", ex.getMessage());
-        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage());
     }
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
-        log.warn("Forbidden: {}", ex.getMessage());
+        log.warn("Forbidden", ex);
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
-        log.warn("Not found: {}", ex.getMessage());
+        log.warn("Not found", ex);
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
-        log.warn("Conflict: {}", ex.getMessage());
+        log.warn("Conflict", ex);
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage());
     }
 
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<ErrorResponse> handleRateLimit(TooManyRequestsException ex) {
-        log.warn("Rate limit: {}", ex.getMessage());
+        log.warn("Rate limit", ex);
         return build(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS", ex.getMessage());
     }
 
