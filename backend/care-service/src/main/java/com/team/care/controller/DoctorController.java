@@ -33,6 +33,11 @@ public class DoctorController {
         return profileService.listDoctors();
     }
 
+    @GetMapping("/user/{userId}")
+    public DoctorProfileDto getDoctorByUserId(@PathVariable Long userId) {
+        return profileService.getDoctorByUserId(userId);
+    }
+
     @GetMapping("/{doctorUserId}/patients")
     public List<PatientProfileDto> getAssignedPatients(@PathVariable Long doctorUserId) {
         return doctorPatientService.listAssignedPatients(doctorUserId);

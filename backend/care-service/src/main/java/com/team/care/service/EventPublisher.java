@@ -27,11 +27,13 @@ public class EventPublisher {
     }
 
     public void publishPatientAssign(PatientAssignEvent event) {
-        kafkaTemplate.send(patientAssignTopic, String.valueOf(event.getPatientId()), event);
+        // TODO: temporarily disable Kafka publishing for patient assignment events.
+        // kafkaTemplate.send(patientAssignTopic, String.valueOf(event.getPatientId()), event);
     }
 
     public void publishUserRegistered(UserRegisteredEvent event) {
-        kafkaTemplate.send(userRegisteredTopic, event.getUserEmail(), event);
+        // TODO: temporarily disable Kafka publishing for user registration events.
+        // kafkaTemplate.send(userRegisteredTopic, event.getUserEmail(), event);
     }
 
     public void publishAudit(String eventType, Long patientId, Long doctorUserId, String role) {
@@ -41,6 +43,7 @@ public class EventPublisher {
         event.setDoctorUserId(doctorUserId);
         event.setRole(role);
         event.setOccurredAt(Instant.now());
-        kafkaTemplate.send(auditEventsTopic, eventType, event);
+        // TODO: temporarily disable Kafka publishing for audit events.
+        // kafkaTemplate.send(auditEventsTopic, eventType, event);
     }
 }

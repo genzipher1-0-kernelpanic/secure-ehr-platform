@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
     MFA_SETUP: '/auth/mfa/setup',
     MFA_ENABLE: '/auth/mfa/enable',
     MFA_VERIFY: '/auth/mfa/verify',
+    SYSTEM_ADMINS: '/auth/system-admins',
+    ADMINS: '/auth/admins',
   },
   PATIENTS: {
     LIST: '/patients',

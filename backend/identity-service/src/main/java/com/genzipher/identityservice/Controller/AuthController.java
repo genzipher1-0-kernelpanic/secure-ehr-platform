@@ -1,11 +1,13 @@
 package com.genzipher.identityservice.Controller;
 
 import com.genzipher.identityservice.DTO.*;
+import com.genzipher.identityservice.Model.RoleName;
 import com.genzipher.identityservice.Service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -68,6 +70,18 @@ public class AuthController {
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/system-admins")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<java.util.List<UserSummaryResponse>> getSystemAdmins() {
+        return ResponseEntity.ok(authService.getUsersByRole(RoleName.SYSTEM_ADMIN));
+    }
+
+    @GetMapping("/admins")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SYSTEM_ADMIN')")
+    public ResponseEntity<java.util.List<UserSummaryResponse>> getAdmins() {
+        return ResponseEntity.ok(authService.getUsersByRole(RoleName.ADMIN));
     }
 
 }

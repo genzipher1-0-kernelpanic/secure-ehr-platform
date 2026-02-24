@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -27,6 +28,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
            where r.name = :roleName
            """)
     long countUsersWithRole(RoleName roleName);
+
+    @EntityGraph(attributePaths = "roles")
+    @Query("""
+           select u
+           from User u
+           join u.roles r
+           where r.name = :roleName
+           """)
+    List<User> findUsersByRole(RoleName roleName);
 
     boolean existsByEmail(String email);
 

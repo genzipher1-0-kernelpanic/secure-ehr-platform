@@ -158,6 +158,7 @@ public class ProfileService {
         dto.setSpecialization(doctor.getSpecialization());
         dto.setLicenseNumber(doctor.getLicenseNumber());
         dto.setPhone(doctor.getPhone());
+        dto.setEmail(doctor.getEmail());
         return dto;
     }
 

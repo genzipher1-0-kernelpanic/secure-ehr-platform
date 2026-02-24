@@ -3,8 +3,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
 import Modal from '@/components/common/Modal'
-import { getDoctorMe, getDoctorPatients } from '@/features/care/api/careApi'
+import { getDoctorByUserId, getDoctorPatients } from '@/features/care/api/careApi'
 import { getEhrRecord, getLabReports } from '@/features/ehr/api/ehrApi'
+import { useAuth } from '@/context/AuthContext'
 
 const navItems = [
   {
@@ -64,6 +65,7 @@ const patientColumns = [
 ]
 
 export default function DoctorDashboard() {
+  const { user } = useAuth()
   const [patients, setPatients] = useState([])
   const [isLoadingPatients, setIsLoadingPatients] = useState(true)
   const [patientsError, setPatientsError] = useState('')
@@ -97,11 +99,11 @@ export default function DoctorDashboard() {
       setIsLoadingPatients(true)
       setPatientsError('')
       try {
-        const doctor = await getDoctorMe()
-        const doctorUserId = doctor?.userId ?? doctor?.id
-        if (!doctorUserId) {
-          throw new Error('Doctor profile missing userId')
+        if (!user?.id) {
+          throw new Error('Missing doctor user id')
         }
+        const doctor = await getDoctorByUserId(user.id)
+        const doctorUserId = doctor?.userId ?? user.id
         const assignedPatients = await getDoctorPatients(doctorUserId)
         if (!isActive) return
 

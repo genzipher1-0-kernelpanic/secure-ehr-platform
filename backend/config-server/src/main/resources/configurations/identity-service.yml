@@ -57,9 +57,9 @@ bootstrap:
 
 security:
   jwt:
-    secret: ${JWT_SECRET:Ro7m3HxWZlse6kmdCNsGJXZr570I0in3NEF5Fr8UzziDJqqMn1yL7eYpXlB}
+    secret: Ro7m3HxWZlse6kmdCNsGJXZr570I0in3NEF5Fr8UzziDJqqMn1yL7eYpXlB
     issuer: genzipher-identity
-    access-ttl-seconds: 900
+    access-ttl-seconds: 9000
     refresh-ttl-seconds: 604800
     max-idle-seconds: 1800
 

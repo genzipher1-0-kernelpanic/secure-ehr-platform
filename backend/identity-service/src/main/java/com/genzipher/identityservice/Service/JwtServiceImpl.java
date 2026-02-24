@@ -44,7 +44,6 @@ public class JwtServiceImpl implements JwtService{
 
         Instant now = Instant.now(clock);
         Instant exp = now.plusSeconds(ttlSeconds);
-
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .issuer(props.issuer())

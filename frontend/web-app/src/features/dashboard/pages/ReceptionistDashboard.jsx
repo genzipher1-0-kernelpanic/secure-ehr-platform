@@ -189,6 +189,7 @@ export default function ReceptionistDashboard() {
           dob: newPatient.dateOfBirth,
           sex: newPatient.sex || 'MALE',
           phone: newPatient.phone,
+          email: newPatient.email,
           address: newPatient.address || undefined,
           emergencyContact: newPatient.emergencyContact || undefined,
         },
@@ -265,6 +266,7 @@ export default function ReceptionistDashboard() {
           specialization: newDoctor.specialization,
           licenseNumber: newDoctor.licenceNumber,
           phone: newDoctor.phone,
+          email: newDoctor.email,
         },
       })
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
@@ -70,12 +70,12 @@ const navItems = [
   },
 ]
 
-/* ─── pre-seeded users from DB ─── */
-const INITIAL_SYSTEM_ADMINS = [
-  { id: '5',  email: 'janith0425@gmail.com', role: 'SYSTEM_ADMIN', status: 'Active', createdAt: '2025-01-01' },
-  { id: '6',  email: 'abc@gmail.com',        role: 'SYSTEM_ADMIN', status: 'Active', createdAt: '2025-01-01' },
-  { id: '10', email: 'abc@123.com',          role: 'SYSTEM_ADMIN', status: 'Active', createdAt: '2025-01-01' },
-]
+/* status labels */
+const STATUS_LABELS = {
+  ACTIVE: 'Active',
+  LOCKED: 'Locked',
+  DISABLED: 'Disabled',
+}
 
 /* ─── service monitoring endpoints ─── */
 const SERVICE_LINKS = [
@@ -105,13 +105,48 @@ const sysAdminCols = [
 export default function SuperAdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null) // admin to delete
-  const [systemAdmins, setSystemAdmins] = useState(INITIAL_SYSTEM_ADMINS)
+  const [systemAdmins, setSystemAdmins] = useState([])
   const [newAdmin, setNewAdmin] = useState({ email: '' })
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingList, setIsLoadingList] = useState(true)
   const [successMessage, setSuccessMessage] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
 
   const isLimitReached = systemAdmins.length >= SYSTEM_ADMIN_LIMIT
+
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadSystemAdmins = async () => {
+      setIsLoadingList(true)
+      setErrorMessage(null)
+      try {
+        const response = await httpClient.get(API_ENDPOINTS.AUTH.SYSTEM_ADMINS)
+        if (!isActive) return
+        const mapped = (response || []).map((admin) => ({
+          id: String(admin.id),
+          email: admin.email,
+          role: admin.role || 'SYSTEM_ADMIN',
+          status: STATUS_LABELS[admin.status] || admin.status || 'Unknown',
+          createdAt: admin.createdAt ? admin.createdAt.split('T')[0] : 'N/A',
+        }))
+        setSystemAdmins(mapped)
+      } catch (error) {
+        if (!isActive) return
+        setErrorMessage(error.message || 'Failed to load system admins')
+      } finally {
+        if (isActive) {
+          setIsLoadingList(false)
+        }
+      }
+    }
+
+    loadSystemAdmins()
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const handleAddAdmin = async (e) => {
     e.preventDefault()
@@ -291,7 +326,7 @@ export default function SuperAdminDashboard() {
           <DataTable
             columns={sysAdminCols}
             data={systemAdmins}
-            emptyMessage="No system admins found"
+            emptyMessage={isLoadingList ? 'Loading system admins...' : 'No system admins found'}
             actions={(row) => (
               <div className="flex gap-2">
                 <button

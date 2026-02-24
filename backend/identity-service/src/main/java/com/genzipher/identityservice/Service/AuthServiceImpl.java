@@ -555,5 +555,20 @@ public class AuthServiceImpl implements AuthService{
         // (user is managed; prc is managed)
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserSummaryResponse> getUsersByRole(RoleName roleName) {
+        var users = userRepository.findUsersByRole(roleName);
+        return users.stream()
+                .map(user -> new UserSummaryResponse(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getStatus().name(),
+                        roleName,
+                        user.getCreatedAt()
+                ))
+                .toList();
+    }
+
 
 }

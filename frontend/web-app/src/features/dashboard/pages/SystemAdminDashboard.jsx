@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsCard from '@/components/common/StatsCard'
 import DataTable from '@/components/common/DataTable'
@@ -69,10 +69,12 @@ const navItems = [
   },
 ]
 
-/* ─── pre-seeded DB users ─── */
-const INITIAL_ADMINS = [
-  { id: '7', email: 'recept@gmail.com', role: 'ADMIN', status: 'Active', createdAt: '2025-01-01' },
-]
+/* status labels */
+const STATUS_LABELS = {
+  ACTIVE: 'Active',
+  LOCKED: 'Locked',
+  DISABLED: 'Disabled',
+}
 
 /* ─── service monitoring ─── */
 const SERVICE_LINKS = [
@@ -102,13 +104,48 @@ const adminCols = [
 export default function SystemAdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
-  const [admins, setAdmins] = useState(INITIAL_ADMINS)
+  const [admins, setAdmins] = useState([])
   const [newAdmin, setNewAdmin] = useState({ email: '' })
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingList, setIsLoadingList] = useState(true)
   const [successMessage, setSuccessMessage] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
 
   const isLimitReached = admins.length >= ADMIN_LIMIT
+
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadAdmins = async () => {
+      setIsLoadingList(true)
+      setErrorMessage(null)
+      try {
+        const response = await httpClient.get(API_ENDPOINTS.AUTH.ADMINS)
+        if (!isActive) return
+        const mapped = (response || []).map((admin) => ({
+          id: String(admin.id),
+          email: admin.email,
+          role: admin.role || 'ADMIN',
+          status: STATUS_LABELS[admin.status] || admin.status || 'Unknown',
+          createdAt: admin.createdAt ? admin.createdAt.split('T')[0] : 'N/A',
+        }))
+        setAdmins(mapped)
+      } catch (error) {
+        if (!isActive) return
+        setErrorMessage(error.message || 'Failed to load admins')
+      } finally {
+        if (isActive) {
+          setIsLoadingList(false)
+        }
+      }
+    }
+
+    loadAdmins()
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const handleAddAdmin = async (e) => {
     e.preventDefault()
@@ -288,7 +325,7 @@ export default function SystemAdminDashboard() {
           <DataTable
             columns={adminCols}
             data={admins}
-            emptyMessage="No admins found"
+            emptyMessage={isLoadingList ? 'Loading admins...' : 'No admins found'}
             actions={(row) => (
               <div className="flex gap-2">
                 <button
